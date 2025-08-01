@@ -3,6 +3,9 @@ import 'pages/home_page.dart';
 import 'pages/create_gang_page.dart';
 import 'pages/join_gang_page.dart';
 import 'pages/gang_home_page.dart';
+import 'pages/chat_page.dart';
+import 'pages/profile_page.dart';
+import 'pages/settings_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gang App',
+      title: 'Mantri',
       theme: ThemeData(
         primaryColor: const Color(0xFF1A2634),
         scaffoldBackgroundColor: const Color(0xFFFEE5B1),
@@ -38,6 +41,9 @@ class MyApp extends StatelessWidget {
         '/create-gang': (context) => const CreateGangPage(),
         '/join-gang': (context) => const JoinGangPage(),
         '/gang-home': (context) => const GangHomePage(),
+        '/chat': (context) => const ChatPage(),
+        '/profile': (context) => const ProfilePage(),
+        '/settings': (context) => const SettingsPage(),
       },
     );
   }

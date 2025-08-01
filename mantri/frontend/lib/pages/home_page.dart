@@ -15,6 +15,14 @@ class _HomePageState extends State<HomePage> {
     {'name': 'Fitness Crew', 'id': '11111', 'members': 5},
   ];
 
+  final List<Map<String, dynamic>> monthlyLeaderboard = [
+    {'name': 'Sarah Wilson', 'gang': 'Gaming Squad', 'saves': 28, 'rank': 1},
+    {'name': 'Jane Smith', 'gang': 'Study Group', 'saves': 25, 'rank': 2},
+    {'name': 'Alex Brown', 'gang': 'Gaming Squad', 'saves': 22, 'rank': 3},
+    {'name': 'John Doe', 'gang': 'Gaming Squad', 'saves': 20, 'rank': 4},
+    {'name': 'Mike Johnson', 'gang': 'Fitness Crew', 'saves': 18, 'rank': 5},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,6 +99,28 @@ class _HomePageState extends State<HomePage> {
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
+                leading: const Icon(
+                  Icons.leaderboard,
+                  color: Color(0xFFFFCC00),
+                ),
+                title: const Text(
+                  'Leaderboard',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person, color: Color(0xFFFFCC00)),
+                title: const Text(
+                  'Profile',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/profile');
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.settings, color: Color(0xFFFFCC00)),
                 title: const Text(
                   'Settings',
@@ -98,11 +128,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Settings - Feature coming soon'),
-                    ),
-                  );
+                  Navigator.pushNamed(context, '/settings');
                 },
               ),
               const Divider(color: Color(0xFF203E5F)),
@@ -125,7 +151,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +203,71 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 32),
             const Text(
+              'Monthly Leaderboard',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A2634),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              color: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: monthlyLeaderboard.length,
+                itemBuilder: (context, index) {
+                  final member = monthlyLeaderboard[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: member['rank'] == 1
+                          ? const Color(0xFFFFCC00)
+                          : member['rank'] == 2
+                          ? Colors.grey[400]
+                          : member['rank'] == 3
+                          ? Colors.brown[300]
+                          : const Color(0xFF203E5F),
+                      child: Text(
+                        member['rank'].toString(),
+                        style: const TextStyle(
+                          color: Color(0xFF1A2634),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      member['name'],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A2634),
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${member['saves']} saves • ${member['gang']}',
+                      style: const TextStyle(color: Color(0xFF203E5F)),
+                    ),
+                    trailing: member['rank'] <= 3
+                        ? Icon(
+                            Icons.emoji_events,
+                            color: member['rank'] == 1
+                                ? const Color(0xFFFFCC00)
+                                : member['rank'] == 2
+                                ? Colors.grey[400]
+                                : Colors.brown[300],
+                            size: 24,
+                          )
+                        : null,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
               'Your Gangs',
               style: TextStyle(
                 fontSize: 22,
@@ -185,63 +276,60 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: userGangs.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No gangs yet. Create or join a gang to get started!',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF203E5F),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: userGangs.length,
-                      itemBuilder: (context, index) {
-                        final gang = userGangs[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          color: Colors.white,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: const Color(0xFFFFCC00),
-                              child: Text(
-                                gang['name'][0].toUpperCase(),
-                                style: const TextStyle(
-                                  color: Color(0xFF1A2634),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              gang['name'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A2634),
-                              ),
-                            ),
-                            subtitle: Text(
-                              'ID: ${gang['id']} • ${gang['members']} members',
-                              style: const TextStyle(color: Color(0xFF203E5F)),
-                            ),
-                            trailing: const Icon(
-                              Icons.arrow_forward_ios,
-                              color: Color(0xFF203E5F),
-                            ),
-                            onTap: () =>
-                                Navigator.pushNamed(context, '/gang-home'),
-                          ),
-                        );
-                      },
+            userGangs.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No gangs yet. Create or join a gang to get started!',
+                      style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
+                      textAlign: TextAlign.center,
                     ),
-            ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: userGangs.length,
+                    itemBuilder: (context, index) {
+                      final gang = userGangs[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        color: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFFFFCC00),
+                            child: Text(
+                              gang['name'][0].toUpperCase(),
+                              style: const TextStyle(
+                                color: Color(0xFF1A2634),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            gang['name'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A2634),
+                            ),
+                          ),
+                          subtitle: Text(
+                            'ID: ${gang['id']} • ${gang['members']} members',
+                            style: const TextStyle(color: Color(0xFF203E5F)),
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Color(0xFF203E5F),
+                          ),
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/gang-home'),
+                        ),
+                      );
+                    },
+                  ),
           ],
         ),
       ),
