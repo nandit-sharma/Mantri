@@ -9,144 +9,290 @@ class JoinGangPage extends StatefulWidget {
 
 class _JoinGangPageState extends State<JoinGangPage> {
   final _formKey = GlobalKey<FormState>();
-  final _gangIdController = TextEditingController();
+  final _idController = TextEditingController();
+  bool _isLoading = false;
+  Map<String, dynamic>? _foundGang;
+
+  void _searchGang() {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      Future.delayed(const Duration(seconds: 1), () {
+        setState(() {
+          _isLoading = false;
+          _foundGang = {
+            'name': 'Gaming Squad',
+            'description': 'A group for gaming enthusiasts',
+            'members': 8,
+            'isPublic': true,
+            'host': 'John Doe',
+          };
+        });
+      });
+    }
+  }
+
+  void _requestToJoin() async {
+    if (_foundGang != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Request sent to join "${_foundGang!['name']}"'),
+          backgroundColor: const Color(0xFF203E5F),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _gangIdController.dispose();
+    _idController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFEE5B1),
       appBar: AppBar(
-        title: const Text('Join Gang', style: TextStyle(color: Color(0xFFFC4100), fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF00215E),
-        elevation: 0,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2C4E80), Color(0xFF00215E)],
+        title: const Text(
+          'Join Gang',
+          style: TextStyle(
+            color: Color(0xFFFFCC00),
+            fontWeight: FontWeight.bold,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(
-                  Icons.group_add,
-                  size: 80,
-                  color: Color(0xFFFFC55A),
+        backgroundColor: const Color(0xFF1A2634),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                color: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Join Existing Gang',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFFC55A),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Enter the gang ID to join',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _gangIdController,
-                  decoration: InputDecoration(
-                    labelText: 'Gang ID',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFFFC55A)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFFFC55A)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFFC4100), width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    prefixIcon: const Icon(Icons.group, color: Color(0xFFFFC55A)),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a gang ID';
-                    }
-                    if (value.length < 3) {
-                      return 'Gang ID must be at least 3 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFC55A)),
-                  ),
-                  child: const Column(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: Color(0xFFFFC55A), size: 24),
-                      SizedBox(height: 8),
-                      Text(
-                        'Ask the gang leader for the gang ID',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                        textAlign: TextAlign.center,
+                      const Text(
+                        'Enter Gang ID',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A2634),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Ask the gang host for the 5-digit ID to join their gang',
+                        style: TextStyle(
+                          color: Color(0xFF203E5F),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _idController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 5,
+                        decoration: const InputDecoration(
+                          labelText: 'Gang ID',
+                          hintText: '12345',
+                          border: OutlineInputBorder(),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Color(0xFF203E5F),
+                              width: 2,
+                            ),
+                          ),
+                          labelStyle: TextStyle(color: Color(0xFF203E5F)),
+                          counterText: '',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a gang ID';
+                          }
+                          if (value.length != 5) {
+                            return 'Gang ID must be 5 digits';
+                          }
+                          if (!RegExp(r'^\d{5}$').hasMatch(value)) {
+                            return 'Gang ID must contain only numbers';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _searchGang,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF203E5F),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Search Gang',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                SizedBox(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Successfully joined the gang!'),
-                            backgroundColor: Color(0xFFFC4100),
+              ),
+              if (_foundGang != null) ...[
+                const SizedBox(height: 24),
+                Card(
+                  color: Colors.white,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFFFFCC00),
+                              child: Text(
+                                _foundGang!['name'][0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Color(0xFF1A2634),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _foundGang!['name'],
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A2634),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Hosted by ${_foundGang!['host']}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF203E5F),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _foundGang!['description'],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF1A2634),
                           ),
-                        );
-                        Navigator.pushNamed(context, '/gang-home');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFC4100),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Join Gang',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.people,
+                              color: const Color(0xFF203E5F),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_foundGang!['members']} members',
+                              style: const TextStyle(
+                                color: Color(0xFF203E5F),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Icon(
+                              _foundGang!['isPublic']
+                                  ? Icons.public
+                                  : Icons.lock,
+                              color: const Color(0xFF203E5F),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _foundGang!['isPublic'] ? 'Public' : 'Private',
+                              style: const TextStyle(
+                                color: Color(0xFF203E5F),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _requestToJoin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFCC00),
+                              foregroundColor: const Color(0xFF1A2634),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Request to Join',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
