@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import '../services/api_service.dart';
 
 class CreateGangPage extends StatefulWidget {
   const CreateGangPage({super.key});
@@ -13,18 +13,7 @@ class _CreateGangPageState extends State<CreateGangPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isPublic = true;
-  String _generatedId = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _generateId();
-  }
-
-  void _generateId() {
-    final random = Random();
-    _generatedId = (10000 + random.nextInt(90000)).toString();
-  }
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -33,18 +22,50 @@ class _CreateGangPageState extends State<CreateGangPage> {
     super.dispose();
   }
 
-  void _createGang() async {
+  Future<void> _createGang() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gang "${_nameController.text}" created successfully!'),
-          backgroundColor: const Color(0xFF203E5F),
-        ),
-      );
+      setState(() {
+        _isLoading = true;
+      });
 
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/gang-home');
+      try {
+        final gang = await ApiService.createGang(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          isPublic: _isPublic,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gang "${gang['name']}" created successfully!'),
+              backgroundColor: const Color(0xFF203E5F),
+            ),
+          );
+          await Future.delayed(const Duration(seconds: 1));
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context,
+              '/gang-home',
+              arguments: gang['gang_id'],
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to create gang: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -70,7 +91,7 @@ class _CreateGangPageState extends State<CreateGangPage> {
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Card(
                 color: Colors.white,
@@ -86,24 +107,18 @@ class _CreateGangPageState extends State<CreateGangPage> {
                       const Text(
                         'Gang Details',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A2634),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
                           labelText: 'Gang Name',
                           border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0xFF203E5F),
-                              width: 2,
-                            ),
-                          ),
-                          labelStyle: TextStyle(color: Color(0xFF203E5F)),
+                          prefixIcon: Icon(Icons.group),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -115,21 +130,15 @@ class _CreateGangPageState extends State<CreateGangPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       TextFormField(
                         controller: _descriptionController,
-                        maxLines: 3,
                         decoration: const InputDecoration(
                           labelText: 'Description',
                           border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0xFF203E5F),
-                              width: 2,
-                            ),
-                          ),
-                          labelStyle: TextStyle(color: Color(0xFF203E5F)),
+                          prefixIcon: Icon(Icons.description),
                         ),
+                        maxLines: 3,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a description';
@@ -137,19 +146,10 @@ class _CreateGangPageState extends State<CreateGangPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Privacy Settings',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2634),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 20),
                       SwitchListTile(
                         title: const Text('Public Gang'),
-                        subtitle: const Text('Anyone can join with the ID'),
+                        subtitle: const Text('Anyone can join this gang'),
                         value: _isPublic,
                         onChanged: (value) {
                           setState(() {
@@ -158,53 +158,6 @@ class _CreateGangPageState extends State<CreateGangPage> {
                         },
                         activeColor: const Color(0xFF203E5F),
                       ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFCC00),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info, color: Color(0xFF1A2634)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Gang ID',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1A2634),
-                                    ),
-                                  ),
-                                  Text(
-                                    _generatedId,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1A2634),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.refresh,
-                                color: Color(0xFF1A2634),
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _generateId();
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -212,20 +165,25 @@ class _CreateGangPageState extends State<CreateGangPage> {
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                height: 56,
                 child: ElevatedButton(
-                  onPressed: _createGang,
+                  onPressed: _isLoading ? null : _createGang,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF203E5F),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Create Gang',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Create Gang',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -8,35 +9,81 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final Map<String, dynamic> userProfile = {
-    'name': 'John Doe',
-    'email': 'john.doe@example.com',
-    'avatar': 'J',
-    'totalSaves': 45,
-    'currentStreak': 7,
-    'bestStreak': 14,
-    'gangsJoined': 3,
-    'achievements': [
-      {
-        'name': 'First Save',
-        'description': 'Completed your first save',
-        'date': '2024-01-15',
-      },
-      {
-        'name': 'Week Warrior',
-        'description': 'Saved for 7 consecutive days',
-        'date': '2024-01-22',
-      },
-      {
-        'name': 'Gang Leader',
-        'description': 'Created your first gang',
-        'date': '2024-01-10',
-      },
-    ],
-  };
+  Map<String, dynamic>? userProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final userData = await ApiService.getCurrentUser();
+      setState(() {
+        userProfile = {
+          'name': userData['username'] ?? 'User',
+          'email': userData['email'] ?? '',
+          'avatar': (userData['username'] ?? 'U')[0].toUpperCase(),
+          'totalSaves': userData['total_saves'] ?? 0,
+          'currentStreak': userData['current_streak'] ?? 0,
+          'bestStreak': userData['best_streak'] ?? 0,
+          'gangsJoined': userData['gangs_joined'] ?? 0,
+          'achievements': userData['achievements'] ?? [],
+        };
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load profile: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFEE5B1),
+        appBar: AppBar(
+          title: const Text(
+            'Profile',
+            style: TextStyle(
+              color: Color(0xFFFFCC00),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: const Color(0xFF1A2634),
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (userProfile == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFEE5B1),
+        appBar: AppBar(
+          title: const Text(
+            'Profile',
+            style: TextStyle(
+              color: Color(0xFFFFCC00),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: const Color(0xFF1A2634),
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        ),
+        body: const Center(child: Text('Failed to load profile')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFEE5B1),
       appBar: AppBar(
@@ -70,7 +117,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       radius: 50,
                       backgroundColor: const Color(0xFFFFCC00),
                       child: Text(
-                        userProfile['avatar'],
+                        userProfile!['avatar'],
                         style: const TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
@@ -80,7 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      userProfile['name'],
+                      userProfile!['name'],
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -89,7 +136,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      userProfile['email'],
+                      userProfile!['email'],
                       style: const TextStyle(
                         color: Color(0xFF203E5F),
                         fontSize: 16,
@@ -101,15 +148,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         _buildStatItem(
                           'Total Saves',
-                          userProfile['totalSaves'].toString(),
+                          userProfile!['totalSaves'].toString(),
                         ),
                         _buildStatItem(
                           'Current Streak',
-                          userProfile['currentStreak'].toString(),
+                          userProfile!['currentStreak'].toString(),
                         ),
                         _buildStatItem(
                           'Best Streak',
-                          userProfile['bestStreak'].toString(),
+                          userProfile!['bestStreak'].toString(),
                         ),
                       ],
                     ),
@@ -139,25 +186,25 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     _buildStatRow(
                       'Gangs Joined',
-                      userProfile['gangsJoined'].toString(),
+                      userProfile!['gangsJoined'].toString(),
                       Icons.group,
                     ),
                     const Divider(),
                     _buildStatRow(
                       'Total Saves',
-                      userProfile['totalSaves'].toString(),
+                      userProfile!['totalSaves'].toString(),
                       Icons.save,
                     ),
                     const Divider(),
                     _buildStatRow(
                       'Current Streak',
-                      '${userProfile['currentStreak']} days',
+                      '${userProfile!['currentStreak']} days',
                       Icons.local_fire_department,
                     ),
                     const Divider(),
                     _buildStatRow(
                       'Best Streak',
-                      '${userProfile['bestStreak']} days',
+                      '${userProfile!['bestStreak']} days',
                       Icons.emoji_events,
                     ),
                   ],
@@ -177,9 +224,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: userProfile['achievements'].length,
+              itemCount: userProfile!['achievements'].length,
               itemBuilder: (context, index) {
-                final achievement = userProfile['achievements'][index];
+                final achievement = userProfile!['achievements'][index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   color: Colors.white,
@@ -196,7 +243,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     title: Text(
-                      achievement['name'],
+                      achievement['name'] ?? 'Achievement',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1A2634),
@@ -206,11 +253,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          achievement['description'],
+                          achievement['description'] ?? 'Achievement earned',
                           style: const TextStyle(color: Color(0xFF203E5F)),
                         ),
                         Text(
-                          'Earned on ${achievement['date']}',
+                          'Earned on ${achievement['date'] ?? 'Unknown'}',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,

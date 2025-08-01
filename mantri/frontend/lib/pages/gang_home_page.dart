@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class GangHomePage extends StatefulWidget {
   const GangHomePage({super.key});
@@ -9,96 +10,80 @@ class GangHomePage extends StatefulWidget {
 
 class _GangHomePageState extends State<GangHomePage> {
   int _currentIndex = 0;
-  final List<Map<String, dynamic>> gangMembers = [
-    {
-      'name': 'John Doe',
-      'role': 'Host',
-      'avatar': 'J',
-      'saves': 5,
-      'weekSaves': 3,
-    },
-    {
-      'name': 'Jane Smith',
-      'role': 'Member',
-      'avatar': 'J',
-      'saves': 8,
-      'weekSaves': 6,
-    },
-    {
-      'name': 'Mike Johnson',
-      'role': 'Member',
-      'avatar': 'M',
-      'saves': 3,
-      'weekSaves': 2,
-    },
-    {
-      'name': 'Sarah Wilson',
-      'role': 'Member',
-      'avatar': 'S',
-      'saves': 12,
-      'weekSaves': 7,
-    },
-    {
-      'name': 'Alex Brown',
-      'role': 'Member',
-      'avatar': 'A',
-      'saves': 6,
-      'weekSaves': 4,
-    },
-  ];
-
-  final List<Map<String, dynamic>> recentActivities = [
-    {
-      'type': 'achievement',
-      'user': 'Sarah Wilson',
-      'content': 'won Weekly Achievement: Most Saves!',
-      'time': '2 hours ago',
-    },
-    {
-      'type': 'save',
-      'user': 'John Doe',
-      'content': 'completed daily save',
-      'time': '1 hour ago',
-    },
-    {
-      'type': 'join',
-      'user': 'Alex Brown',
-      'content': 'joined the gang',
-      'time': '3 hours ago',
-    },
-  ];
-
-  bool _didSaveToday = false;
-  DateTime _lastSaveDate = DateTime.now().subtract(const Duration(days: 1));
+  Map<String, dynamic>? _gangData;
+  bool _isLoading = true;
+  String? _gangId;
 
   @override
   void initState() {
     super.initState();
-    _checkTodaySave();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadGangData();
+    });
   }
 
-  void _checkTodaySave() {
-    final today = DateTime.now();
-    final lastSave = _lastSaveDate;
-    _didSaveToday =
-        today.year == lastSave.year &&
-        today.month == lastSave.month &&
-        today.day == lastSave.day;
-  }
-
-  void _toggleSave() {
-    setState(() {
-      _didSaveToday = !_didSaveToday;
-      if (_didSaveToday) {
-        _lastSaveDate = DateTime.now();
+  Future<void> _loadGangData() async {
+    try {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      print('Loading gang data with args: $args');
+      if (args is String) {
+        _gangId = args;
+        print('Gang ID: $_gangId');
+        final data = await ApiService.getGangHome(_gangId!);
+        print('Received gang data: ${data.keys}');
+        print('User weekly record: ${data['user_weekly_record']}');
+        setState(() {
+          _gangData = data;
+          _isLoading = false;
+        });
+      } else {
+        print('Invalid args type: ${args.runtimeType}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading gang data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Daily save completed!'),
-            backgroundColor: Color(0xFF203E5F),
+          SnackBar(
+            content: Text('Failed to load gang data: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    });
+    }
+  }
+
+  Future<void> _saveToday(bool saved) async {
+    if (_gangId == null) return;
+
+    try {
+      await ApiService.saveToday(_gangId!, saved);
+      await _loadGangData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              saved ? 'Daily save completed!' : 'Save status updated',
+            ),
+            backgroundColor: const Color(0xFF203E5F),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showMoreOptions() {
@@ -195,11 +180,64 @@ class _GangHomePageState extends State<GangHomePage> {
   }
 
   Widget _buildHomeTab() {
+    if (_gangData == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+      );
+    }
+
+    final gang = _gangData!['gang'];
+    final userWeeklyRecord = List<dynamic>.from(
+      _gangData!['user_weekly_record'],
+    );
+    final userTodaySave = _gangData!['user_today_save'] ?? false;
+    final weeklyRecords = List<Map<String, dynamic>>.from(
+      _gangData!['weekly_records'],
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Card(
+            color: const Color(0xFF203E5F),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  const Text(
+                    'Gang Code',
+                    style: TextStyle(
+                      color: Color(0xFFFFCC00),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    gang['gang_id'] ?? 'N/A',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Share this code with others to join',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             color: Colors.white,
             elevation: 4,
@@ -216,9 +254,9 @@ class _GangHomePageState extends State<GangHomePage> {
                       CircleAvatar(
                         radius: 30,
                         backgroundColor: const Color(0xFFFFCC00),
-                        child: const Text(
-                          'G',
-                          style: TextStyle(
+                        child: Text(
+                          gang['name'][0].toUpperCase(),
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1A2634),
@@ -230,17 +268,17 @@ class _GangHomePageState extends State<GangHomePage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Gaming Squad',
-                              style: TextStyle(
+                            Text(
+                              gang['name'],
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1A2634),
                               ),
                             ),
-                            const Text(
-                              'A group for gaming enthusiasts',
-                              style: TextStyle(
+                            Text(
+                              gang['description'],
+                              style: const TextStyle(
                                 color: Color(0xFF203E5F),
                                 fontSize: 16,
                               ),
@@ -255,22 +293,22 @@ class _GangHomePageState extends State<GangHomePage> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '${gangMembers.length} members',
+                                  '${_gangData!['members'].length} members',
                                   style: const TextStyle(
                                     color: Color(0xFF203E5F),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                const Icon(
-                                  Icons.public,
-                                  color: Color(0xFF203E5F),
+                                Icon(
+                                  gang['is_public'] ? Icons.public : Icons.lock,
+                                  color: const Color(0xFF203E5F),
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'Public',
-                                  style: TextStyle(
+                                Text(
+                                  gang['is_public'] ? 'Public' : 'Private',
+                                  style: const TextStyle(
                                     color: Color(0xFF203E5F),
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -307,35 +345,99 @@ class _GangHomePageState extends State<GangHomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  const Text(
+                    'Did you save today?',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF1A2634)),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
-                      Checkbox(
-                        value: _didSaveToday,
-                        onChanged: (value) => _toggleSave(),
-                        activeColor: const Color(0xFF203E5F),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _saveToday(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: userTodaySave
+                                ? Colors.green
+                                : Colors.grey[300],
+                            foregroundColor: userTodaySave
+                                ? Colors.white
+                                : Colors.grey[600],
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Yes',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                      const Expanded(
-                        child: Text(
-                          'Did you save today?',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF1A2634),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _saveToday(false),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                !userTodaySave && userTodaySave != null
+                                ? Colors.red
+                                : Colors.grey[300],
+                            foregroundColor:
+                                !userTodaySave && userTodaySave != null
+                                ? Colors.white
+                                : Colors.grey[600],
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'No',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
-                    _didSaveToday
+                    userTodaySave
                         ? 'Great job! You\'ve saved today.'
                         : 'Don\'t forget to save today!',
                     style: TextStyle(
-                      color: _didSaveToday
+                      color: userTodaySave
                           ? const Color(0xFF203E5F)
                           : Colors.grey[600],
                       fontSize: 14,
                     ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'This Week\'s Record',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A2634),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildDayRecord('Mon', userWeeklyRecord[0] as bool?, 0),
+                      _buildDayRecord('Tue', userWeeklyRecord[1] as bool?, 1),
+                      _buildDayRecord('Wed', userWeeklyRecord[2] as bool?, 2),
+                      _buildDayRecord('Thu', userWeeklyRecord[3] as bool?, 3),
+                      _buildDayRecord('Fri', userWeeklyRecord[4] as bool?, 4),
+                      _buildDayRecord('Sat', userWeeklyRecord[5] as bool?, 5),
+                      _buildDayRecord('Sun', userWeeklyRecord[6] as bool?, 6),
+                    ],
                   ),
                 ],
               ),
@@ -360,17 +462,13 @@ class _GangHomePageState extends State<GangHomePage> {
             child: ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: gangMembers.length,
+              itemCount: weeklyRecords.length,
               itemBuilder: (context, index) {
-                final member = gangMembers[index];
-                final sortedMembers = List<Map<String, dynamic>>.from(
-                  gangMembers,
-                )..sort((a, b) => b['weekSaves'].compareTo(a['weekSaves']));
-                final rank =
-                    sortedMembers.indexWhere(
-                      (m) => m['name'] == member['name'],
-                    ) +
-                    1;
+                final sortedRecords = List<Map<String, dynamic>>.from(
+                  weeklyRecords,
+                )..sort((a, b) => b['week_saves'].compareTo(a['week_saves']));
+                final record = sortedRecords[index];
+                final rank = index + 1;
 
                 return ListTile(
                   leading: CircleAvatar(
@@ -390,17 +488,17 @@ class _GangHomePageState extends State<GangHomePage> {
                     ),
                   ),
                   title: Text(
-                    member['name'],
+                    record['username'],
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A2634),
                     ),
                   ),
                   subtitle: Text(
-                    '${member['weekSaves']} saves this week',
+                    '${record['week_saves']} saves this week',
                     style: const TextStyle(color: Color(0xFF203E5F)),
                   ),
-                  trailing: member['role'] == 'Host'
+                  trailing: record['role'] == 'host'
                       ? Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -429,7 +527,56 @@ class _GangHomePageState extends State<GangHomePage> {
     );
   }
 
+  Widget _buildDayRecord(String day, bool? saved, int dayIndex) {
+    final now = DateTime.now();
+    final today = now.weekday - 1;
+    final isPastDay = dayIndex < today;
+    final isToday = dayIndex == today;
+    final isFutureDay = dayIndex > today;
+
+    Widget iconWidget;
+    Color backgroundColor;
+
+    if (isFutureDay || saved == null) {
+      backgroundColor = Colors.grey[300]!;
+      iconWidget = const SizedBox();
+    } else if (saved == true) {
+      backgroundColor = Colors.green;
+      iconWidget = const Icon(Icons.check, color: Colors.white, size: 20);
+    } else {
+      backgroundColor = Colors.red;
+      iconWidget = const Icon(Icons.close, color: Colors.white, size: 20);
+    }
+
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+          ),
+          child: iconWidget,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          day,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF203E5F)),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMembersTab() {
+    if (_gangData == null) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+      );
+    }
+
+    final members = List<Map<String, dynamic>>.from(_gangData!['members']);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -453,14 +600,14 @@ class _GangHomePageState extends State<GangHomePage> {
             child: ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: gangMembers.length,
+              itemCount: members.length,
               itemBuilder: (context, index) {
-                final member = gangMembers[index];
+                final member = members[index];
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: const Color(0xFFFFCC00),
                     child: Text(
-                      member['avatar'],
+                      member['user']['username'][0].toUpperCase(),
                       style: const TextStyle(
                         color: Color(0xFF1A2634),
                         fontWeight: FontWeight.bold,
@@ -468,17 +615,17 @@ class _GangHomePageState extends State<GangHomePage> {
                     ),
                   ),
                   title: Text(
-                    member['name'],
+                    member['user']['username'],
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A2634),
                     ),
                   ),
                   subtitle: Text(
-                    '${member['saves']} total saves • ${member['weekSaves']} this week',
+                    'Role: ${member['role']}',
                     style: const TextStyle(color: Color(0xFF203E5F)),
                   ),
-                  trailing: member['role'] == 'Host'
+                  trailing: member['role'] == 'host'
                       ? Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -528,47 +675,28 @@ class _GangHomePageState extends State<GangHomePage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: recentActivities.length,
-              itemBuilder: (context, index) {
-                final activity = recentActivities[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF203E5F),
-                    child: Icon(
-                      activity['type'] == 'message'
-                          ? Icons.chat
-                          : activity['type'] == 'join'
-                          ? Icons.person_add
-                          : activity['type'] == 'achievement'
-                          ? Icons.emoji_events
-                          : Icons.save,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    activity['user'],
-                    style: const TextStyle(
+            child: const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Icon(Icons.timeline, size: 48, color: Color(0xFF203E5F)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Activity tracking coming soon!',
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A2634),
                     ),
                   ),
-                  subtitle: Text(
-                    activity['content'],
-                    style: const TextStyle(color: Color(0xFF203E5F)),
+                  SizedBox(height: 8),
+                  Text(
+                    'Track gang activities and achievements',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
+                    textAlign: TextAlign.center,
                   ),
-                  trailing: Text(
-                    activity['time'],
-                    style: const TextStyle(
-                      color: Color(0xFF203E5F),
-                      fontSize: 12,
-                    ),
-                  ),
-                );
-              },
+                ],
+              ),
             ),
           ),
         ],
@@ -578,6 +706,27 @@ class _GangHomePageState extends State<GangHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFEE5B1),
+        appBar: AppBar(
+          title: const Text(
+            'Loading...',
+            style: TextStyle(
+              color: Color(0xFFFFCC00),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: const Color(0xFF1A2634),
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+        ),
+      );
+    }
+
     final List<Widget> tabs = [
       _buildHomeTab(),
       _buildMembersTab(),
@@ -587,9 +736,9 @@ class _GangHomePageState extends State<GangHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFEE5B1),
       appBar: AppBar(
-        title: const Text(
-          'Gaming Squad',
-          style: TextStyle(
+        title: Text(
+          _gangData?['gang']['name'] ?? 'Gang',
+          style: const TextStyle(
             color: Color(0xFFFFCC00),
             fontWeight: FontWeight.bold,
           ),
@@ -603,7 +752,8 @@ class _GangHomePageState extends State<GangHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.chat, color: Color(0xFFFFCC00)),
-            onPressed: () => Navigator.pushNamed(context, '/chat'),
+            onPressed: () =>
+                Navigator.pushNamed(context, '/chat', arguments: _gangId),
           ),
           IconButton(
             icon: const Icon(Icons.more_vert, color: Color(0xFFFFCC00)),

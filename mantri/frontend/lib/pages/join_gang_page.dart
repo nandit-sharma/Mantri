@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class JoinGangPage extends StatefulWidget {
   const JoinGangPage({super.key});
@@ -9,51 +10,84 @@ class JoinGangPage extends StatefulWidget {
 
 class _JoinGangPageState extends State<JoinGangPage> {
   final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
-  bool _isLoading = false;
+  final _gangIdController = TextEditingController();
   Map<String, dynamic>? _foundGang;
+  bool _isLoading = false;
+  bool _isSearching = false;
 
-  void _searchGang() {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      Future.delayed(const Duration(seconds: 1), () {
-        setState(() {
-          _isLoading = false;
-          _foundGang = {
-            'name': 'Gaming Squad',
-            'description': 'A group for gaming enthusiasts',
-            'members': 8,
-            'isPublic': true,
-            'host': 'John Doe',
-          };
-        });
-      });
-    }
+  @override
+  void dispose() {
+    _gangIdController.dispose();
+    super.dispose();
   }
 
-  void _requestToJoin() async {
-    if (_foundGang != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Request sent to join "${_foundGang!['name']}"'),
-          backgroundColor: const Color(0xFF203E5F),
-        ),
-      );
+  Future<void> _searchGang() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSearching = true;
+        _foundGang = null;
+      });
 
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        Navigator.pop(context);
+      try {
+        final gang = await ApiService.getGang(_gangIdController.text.trim());
+        setState(() {
+          _foundGang = gang;
+          _isSearching = false;
+        });
+      } catch (e) {
+        setState(() {
+          _foundGang = null;
+          _isSearching = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gang not found: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
 
-  @override
-  void dispose() {
-    _idController.dispose();
-    super.dispose();
+  Future<void> _requestToJoin() async {
+    if (_foundGang != null) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await ApiService.joinGang(_foundGang!['gang_id']);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Successfully joined "${_foundGang!['name']}"'),
+              backgroundColor: const Color(0xFF203E5F),
+            ),
+          );
+          await Future.delayed(const Duration(seconds: 1));
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to join gang: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -77,7 +111,7 @@ class _JoinGangPageState extends State<JoinGangPage> {
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Card(
                 color: Colors.white,
@@ -93,37 +127,21 @@ class _JoinGangPageState extends State<JoinGangPage> {
                       const Text(
                         'Enter Gang ID',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1A2634),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Ask the gang host for the 5-digit ID to join their gang',
-                        style: TextStyle(
-                          color: Color(0xFF203E5F),
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       TextFormField(
-                        controller: _idController,
+                        controller: _gangIdController,
+                        decoration: const InputDecoration(
+                          labelText: '5-digit Gang ID',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.group),
+                        ),
                         keyboardType: TextInputType.number,
                         maxLength: 5,
-                        decoration: const InputDecoration(
-                          labelText: 'Gang ID',
-                          hintText: '12345',
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0xFF203E5F),
-                              width: 2,
-                            ),
-                          ),
-                          labelStyle: TextStyle(color: Color(0xFF203E5F)),
-                          counterText: '',
-                        ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a gang ID';
@@ -137,34 +155,27 @@ class _JoinGangPageState extends State<JoinGangPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _searchGang,
+                          onPressed: _isSearching ? null : _searchGang,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF203E5F),
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
+                          child: _isSearching
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
                                 )
                               : const Text(
                                   'Search Gang',
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -190,12 +201,14 @@ class _JoinGangPageState extends State<JoinGangPage> {
                         Row(
                           children: [
                             CircleAvatar(
+                              radius: 25,
                               backgroundColor: const Color(0xFFFFCC00),
                               child: Text(
                                 _foundGang!['name'][0].toUpperCase(),
                                 style: const TextStyle(
-                                  color: Color(0xFF1A2634),
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A2634),
                                 ),
                               ),
                             ),
@@ -213,9 +226,10 @@ class _JoinGangPageState extends State<JoinGangPage> {
                                     ),
                                   ),
                                   Text(
-                                    'Hosted by ${_foundGang!['host']}',
+                                    _foundGang!['description'],
                                     style: const TextStyle(
                                       color: Color(0xFF203E5F),
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ],
@@ -224,32 +238,10 @@ class _JoinGangPageState extends State<JoinGangPage> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          _foundGang!['description'],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF1A2634),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
                         Row(
                           children: [
                             Icon(
-                              Icons.people,
-                              color: const Color(0xFF203E5F),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${_foundGang!['members']} members',
-                              style: const TextStyle(
-                                color: Color(0xFF203E5F),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              _foundGang!['isPublic']
+                              _foundGang!['is_public']
                                   ? Icons.public
                                   : Icons.lock,
                               color: const Color(0xFF203E5F),
@@ -257,7 +249,7 @@ class _JoinGangPageState extends State<JoinGangPage> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _foundGang!['isPublic'] ? 'Public' : 'Private',
+                              _foundGang!['is_public'] ? 'Public' : 'Private',
                               style: const TextStyle(
                                 color: Color(0xFF203E5F),
                                 fontWeight: FontWeight.w500,
@@ -265,26 +257,30 @@ class _JoinGangPageState extends State<JoinGangPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
-                          height: 56,
                           child: ElevatedButton(
-                            onPressed: _requestToJoin,
+                            onPressed: _isLoading ? null : _requestToJoin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFFCC00),
                               foregroundColor: const Color(0xFF1A2634),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text(
-                              'Request to Join',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Color(0xFF1A2634),
+                                  )
+                                : const Text(
+                                    'Request to Join',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

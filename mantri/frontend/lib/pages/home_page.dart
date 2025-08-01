@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -9,19 +10,43 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final List<Map<String, dynamic>> userGangs = [
-    {'name': 'Gaming Squad', 'id': '12345', 'members': 8},
-    {'name': 'Study Group', 'id': '67890', 'members': 12},
-    {'name': 'Fitness Crew', 'id': '11111', 'members': 5},
-  ];
+  List<Map<String, dynamic>> userGangs = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> monthlyLeaderboard = [
-    {'name': 'Sarah Wilson', 'gang': 'Gaming Squad', 'saves': 28, 'rank': 1},
-    {'name': 'Jane Smith', 'gang': 'Study Group', 'saves': 25, 'rank': 2},
-    {'name': 'Alex Brown', 'gang': 'Gaming Squad', 'saves': 22, 'rank': 3},
-    {'name': 'John Doe', 'gang': 'Gaming Squad', 'saves': 20, 'rank': 4},
-    {'name': 'Mike Johnson', 'gang': 'Fitness Crew', 'saves': 18, 'rank': 5},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadUserGangs();
+  }
+
+  Future<void> _loadUserGangs() async {
+    try {
+      final gangs = await ApiService.getUserGangs();
+      setState(() {
+        userGangs = gangs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load gangs: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    await ApiService.removeToken();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +54,13 @@ class _HomePageState extends State<HomePage> {
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFFEE5B1),
       appBar: AppBar(
+        title: const Text(
+          'Mantri',
+          style: TextStyle(
+            color: Color(0xFFFFCC00),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF1A2634),
         elevation: 0,
         leading: IconButton(
@@ -38,11 +70,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Color(0xFFFFCC00)),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings - Feature coming soon')),
-              );
-            },
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
           ),
         ],
       ),
@@ -53,31 +81,31 @@ class _HomePageState extends State<HomePage> {
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFF203E5F)),
+                decoration: const BoxDecoration(color: Color(0xFFFFCC00)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const CircleAvatar(
                       radius: 30,
-                      backgroundColor: Color(0xFFFFCC00),
+                      backgroundColor: Color(0xFF1A2634),
                       child: Icon(
                         Icons.person,
-                        size: 35,
-                        color: Color(0xFF1A2634),
+                        color: Color(0xFFFFCC00),
+                        size: 30,
                       ),
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'User Profile',
+                      'Mantri',
                       style: TextStyle(
-                        color: Color(0xFFFFCC00),
-                        fontSize: 18,
+                        color: Color(0xFF1A2634),
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Text(
-                      'user@example.com',
-                      style: TextStyle(color: Colors.white70),
+                      'Save together, stay together',
+                      style: TextStyle(color: Color(0xFF1A2634), fontSize: 14),
                     ),
                   ],
                 ),
@@ -88,7 +116,9 @@ class _HomePageState extends State<HomePage> {
                   'Home',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.group, color: Color(0xFFFFCC00)),
@@ -96,7 +126,9 @@ class _HomePageState extends State<HomePage> {
                   'My Gangs',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                },
               ),
               ListTile(
                 leading: const Icon(
@@ -107,7 +139,14 @@ class _HomePageState extends State<HomePage> {
                   'Leaderboard',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Leaderboard - Feature coming soon'),
+                    ),
+                  );
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.person, color: Color(0xFFFFCC00)),
@@ -131,21 +170,14 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pushNamed(context, '/settings');
                 },
               ),
-              const Divider(color: Color(0xFF203E5F)),
+              const Divider(color: Colors.white54),
               ListTile(
-                leading: const Icon(Icons.logout, color: Color(0xFFFFCC00)),
+                leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text(
                   'Logout',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.red),
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Logout - Feature coming soon'),
-                    ),
-                  );
-                },
+                onTap: _logout,
               ),
             ],
           ),
@@ -159,12 +191,13 @@ class _HomePageState extends State<HomePage> {
             const Text(
               '"My gang pees together, stays together..."',
               style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2634),
+                fontSize: 18,
+                fontStyle: FontStyle.italic,
+                color: Color(0xFF203E5F),
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               children: [
                 Expanded(
@@ -174,12 +207,9 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(Icons.add),
                     label: const Text('Create Gang'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFCC00),
-                      foregroundColor: const Color(0xFF1A2634),
+                      backgroundColor: const Color(0xFF203E5F),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
                   ),
                 ),
@@ -190,81 +220,13 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(Icons.group_add),
                     label: const Text('Join Gang'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF203E5F),
-                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFFFFCC00),
+                      foregroundColor: const Color(0xFF1A2634),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Monthly Leaderboard',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2634),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              color: Colors.white,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: monthlyLeaderboard.length,
-                itemBuilder: (context, index) {
-                  final member = monthlyLeaderboard[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: member['rank'] == 1
-                          ? const Color(0xFFFFCC00)
-                          : member['rank'] == 2
-                          ? Colors.grey[400]
-                          : member['rank'] == 3
-                          ? Colors.brown[300]
-                          : const Color(0xFF203E5F),
-                      child: Text(
-                        member['rank'].toString(),
-                        style: const TextStyle(
-                          color: Color(0xFF1A2634),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      member['name'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A2634),
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${member['saves']} saves • ${member['gang']}',
-                      style: const TextStyle(color: Color(0xFF203E5F)),
-                    ),
-                    trailing: member['rank'] <= 3
-                        ? Icon(
-                            Icons.emoji_events,
-                            color: member['rank'] == 1
-                                ? const Color(0xFFFFCC00)
-                                : member['rank'] == 2
-                                ? Colors.grey[400]
-                                : Colors.brown[300],
-                            size: 24,
-                          )
-                        : null,
-                  );
-                },
-              ),
             ),
             const SizedBox(height: 32),
             const Text(
@@ -276,60 +238,145 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 16),
-            userGangs.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No gangs yet. Create or join a gang to get started!',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: userGangs.length,
-                    itemBuilder: (context, index) {
-                      final gang = userGangs[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        color: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+            if (_isLoading)
+              const Center(
+                child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+              )
+            else if (userGangs.isEmpty)
+              Card(
+                color: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.group_outlined,
+                        size: 48,
+                        color: Color(0xFF203E5F),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'No gangs yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A2634),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFFFFCC00),
-                            child: Text(
-                              gang['name'][0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Color(0xFF1A2634),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Create or join a gang to get started!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF203E5F),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: userGangs.length,
+                itemBuilder: (context, index) {
+                  final gang = userGangs[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    color: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: const Color(0xFFFFCC00),
+                        child: Text(
+                          gang['name'][0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A2634),
+                            fontWeight: FontWeight.bold,
                           ),
-                          title: Text(
-                            gang['name'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A2634),
-                            ),
-                          ),
-                          subtitle: Text(
-                            'ID: ${gang['id']} • ${gang['members']} members',
+                        ),
+                      ),
+                      title: Text(
+                        gang['name'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A2634),
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            gang['description'],
                             style: const TextStyle(color: Color(0xFF203E5F)),
                           ),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Color(0xFF203E5F),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${gang['member_count']} members',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: gang['role'] == 'host'
+                                      ? const Color(0xFFFFCC00)
+                                      : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  gang['role'].toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: gang['role'] == 'host'
+                                        ? const Color(0xFF1A2634)
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/gang-home'),
-                        ),
-                      );
-                    },
-                  ),
+                        ],
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF203E5F),
+                      ),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/gang-home',
+                          arguments: gang['gang_id'],
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),
