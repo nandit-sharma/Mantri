@@ -16,7 +16,9 @@ from utils import generate_gang_id, get_week_start_date, get_week_end_date, get_
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Mantri API", version="1.0.0")
+# app = FastAPI(title="Mantri API", version="1.0.0")
+from fastapi import FastAPI
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
