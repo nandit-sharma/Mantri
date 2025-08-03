@@ -7,12 +7,15 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notifications =
+      FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
     tz.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -28,12 +31,19 @@ class NotificationService {
   }
 
   Future<void> requestPermissions() async {
-    await _notifications.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>()?.requestPermissions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await _notifications
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
+
+    final androidPlugin = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
+    }
   }
 
   Future<void> scheduleDailyReminder() async {
@@ -114,22 +124,29 @@ class NotificationService {
 
   tz.TZDateTime _nextInstanceOf(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    
+    tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
-    
+
     return scheduledDate;
   }
 
   tz.TZDateTime _nextInstanceOfWeekday(int weekday, int hour, int minute) {
     tz.TZDateTime scheduledDate = _nextInstanceOf(hour, minute);
-    
+
     while (scheduledDate.weekday != weekday) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
-    
+
     return scheduledDate;
   }
 
@@ -166,4 +183,4 @@ class NotificationService {
       payload: payload,
     );
   }
-} 
+}

@@ -35,8 +35,6 @@ class _ProfilePageState extends State<ProfilePage> {
           'email': userData['email'] ?? '',
           'avatar': (userData['username'] ?? 'U')[0].toUpperCase(),
           'totalSaves': userData['total_saves'] ?? 0,
-          'currentStreak': userData['current_streak'] ?? 0,
-          'bestStreak': userData['best_streak'] ?? 0,
           'gangsJoined': userData['gangs_joined'] ?? 0,
         };
         _nameController.text = userProfile!['name'];
@@ -174,51 +172,95 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         title: const Text(
           'Profile',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
         backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF273F4F), Color(0xFF203E5F)],
+            ),
+          ),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: _showUpdateDialog,
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: _showUpdateDialog,
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Card(
-              color: Colors.white,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFE7743), Colors.red],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFE7743).withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: const Color(0xFFFE7743),
-                      child: Text(
-                        userProfile!['avatar'],
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          userProfile!['avatar'],
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFE7743),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Text(
                       userProfile!['name'],
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF273F4F),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -226,37 +268,54 @@ class _ProfilePageState extends State<ProfilePage> {
                       userProfile!['email'],
                       style: const TextStyle(
                         fontSize: 16,
-                        color: Color(0xFF273F4F),
+                        color: Colors.white70,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               children: [
                 Expanded(
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          const Icon(
-                            Icons.timeline,
-                            size: 32,
-                            color: Color(0xFFFE7743),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFFFE7743), Colors.red],
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.timeline,
+                              size: 32,
+                              color: Colors.white,
+                            ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
                           Text(
                             '${userProfile!['totalSaves']}',
                             style: const TextStyle(
-                              fontSize: 24,
+                              fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF273F4F),
                             ),
@@ -264,8 +323,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           const Text(
                             'Total Saves',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF273F4F),
+                              fontSize: 16,
+                              color: Color(0xFF203E5F),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -275,106 +335,43 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(24.0),
                       child: Column(
                         children: [
-                          const Icon(
-                            Icons.local_fire_department,
-                            size: 32,
-                            color: Color(0xFFFE7743),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${userProfile!['currentStreak']}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF273F4F),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF273F4F), Color(0xFF203E5F)],
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.group,
+                              size: 32,
+                              color: Colors.white,
                             ),
                           ),
-                          const Text(
-                            'Current Streak',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF273F4F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.emoji_events,
-                            size: 32,
-                            color: Color(0xFFFE7743),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${userProfile!['bestStreak']}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF273F4F),
-                            ),
-                          ),
-                          const Text(
-                            'Best Streak',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF273F4F),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.group,
-                            size: 32,
-                            color: Color(0xFFFE7743),
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
                           Text(
                             '${userProfile!['gangsJoined']}',
                             style: const TextStyle(
-                              fontSize: 24,
+                              fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF273F4F),
                             ),
@@ -382,8 +379,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           const Text(
                             'Gangs Joined',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF273F4F),
+                              fontSize: 16,
+                              color: Color(0xFF203E5F),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],

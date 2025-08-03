@@ -12,14 +12,22 @@ import 'pages/register_page.dart';
 import 'pages/leaderboard_page.dart';
 import 'services/api_service.dart';
 import 'services/settings_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize settings and notifications
   final settingsService = SettingsService();
   await settingsService.initialize();
-  
+
+  // Schedule daily notifications
+  final notificationsEnabled = await settingsService.getNotificationsEnabled();
+  if (notificationsEnabled) {
+    final notificationService = NotificationService();
+    await notificationService.scheduleDailyReminder();
+  }
+
   runApp(const MyApp());
 }
 

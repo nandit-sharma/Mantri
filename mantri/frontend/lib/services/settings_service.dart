@@ -17,6 +17,11 @@ class SettingsService {
   Future<void> initialize() async {
     await _notificationService.initialize();
     await _notificationService.requestPermissions();
+
+    final notificationsEnabled = await getNotificationsEnabled();
+    if (notificationsEnabled) {
+      await _notificationService.scheduleDailyReminder();
+    }
   }
 
   Future<bool> getNotificationsEnabled() async {
@@ -27,7 +32,7 @@ class SettingsService {
   Future<void> setNotificationsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notificationsKey, enabled);
-    
+
     if (enabled) {
       await _notificationService.scheduleDailyReminder();
     } else {
@@ -63,7 +68,7 @@ class SettingsService {
   Future<void> setWeeklyRemindersEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_weeklyRemindersKey, enabled);
-    
+
     if (enabled) {
       await _notificationService.scheduleWeeklyReminder();
     } else {
@@ -84,7 +89,7 @@ class SettingsService {
   Future<void> resetAllSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     await setNotificationsEnabled(true);
     await setDarkModeEnabled(false);
     await setAutoSaveEnabled(true);
@@ -106,4 +111,4 @@ class SettingsService {
       );
     }
   }
-} 
+}

@@ -29,7 +29,8 @@ class _SettingsPageState extends State<SettingsPage> {
       final notifications = await _settingsService.getNotificationsEnabled();
       final darkMode = await _settingsService.getDarkModeEnabled();
       final autoSave = await _settingsService.getAutoSaveEnabled();
-      final weeklyReminders = await _settingsService.getWeeklyRemindersEnabled();
+      final weeklyReminders = await _settingsService
+          .getWeeklyRemindersEnabled();
       final language = await _settingsService.getSelectedLanguage();
 
       setState(() {
@@ -94,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                       await _settingsService.setNotificationsEnabled(value);
                     },
-                    activeColor: const Color(0xFFFE7743),
+                    activeColor: Colors.blue,
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
@@ -107,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                       await _settingsService.setDarkModeEnabled(value);
                     },
-                    activeColor: const Color(0xFFFE7743),
+                    activeColor: Colors.blue,
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
@@ -120,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                       await _settingsService.setAutoSaveEnabled(value);
                     },
-                    activeColor: const Color(0xFFFE7743),
+                    activeColor: Colors.blue,
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
@@ -135,82 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       });
                       await _settingsService.setWeeklyRemindersEnabled(value);
                     },
-                    activeColor: const Color(0xFF203E5F),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Preferences',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2634),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              color: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    title: const Text('Language'),
-                    subtitle: Text(_selectedLanguage),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Color(0xFF203E5F),
-                    ),
-                    onTap: () {
-                      _showLanguageDialog();
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    title: const Text('Privacy Policy'),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Color(0xFF203E5F),
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Privacy Policy - Feature coming soon'),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    title: const Text('Terms of Service'),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Color(0xFF203E5F),
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Terms of Service - Feature coming soon',
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    title: const Text('About'),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Color(0xFF203E5F),
-                    ),
-                    onTap: () {
-                      _showAboutDialog();
-                    },
+                    activeColor: Colors.blue,
                   ),
                 ],
               ),
@@ -242,21 +168,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    title: const Text('Export Data'),
-                    leading: const Icon(
-                      Icons.download,
-                      color: Color(0xFF203E5F),
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Export Data - Feature coming soon'),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
                     title: const Text('Delete Account'),
                     leading: const Icon(
                       Icons.delete_forever,
@@ -275,16 +186,33 @@ class _SettingsPageState extends State<SettingsPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Logging out...')),
-                  );
-                  Navigator.pop(context);
+                onPressed: () async {
+                  try {
+                    await ApiService.removeToken();
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                      (route) => false,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Logged out successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to logout: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.logout),
                 label: const Text('Logout'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF203E5F),
+                  backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -424,7 +352,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           TextButton(
             onPressed: () async {
-              if (newPasswordController.text != confirmPasswordController.text) {
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('New passwords do not match'),
@@ -433,7 +362,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 );
                 return;
               }
-              
+
               if (newPasswordController.text.length < 6) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

@@ -366,4 +366,22 @@ class ApiService {
       throw Exception(error['detail'] ?? 'Failed to delete account');
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getGangActivity(
+    String gangId,
+  ) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/gangs/$gangId/activity'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return List<Map<String, dynamic>>.from(data['activities'] ?? []);
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to get gang activity');
+    }
+  }
 }

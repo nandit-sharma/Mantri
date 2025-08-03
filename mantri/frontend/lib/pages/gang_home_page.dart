@@ -17,6 +17,7 @@ class _GangHomePageState extends State<GangHomePage> {
   bool _isLoading = true;
   String? _gangId;
   Map<String, dynamic>? _monthlyData;
+  List<Map<String, dynamic>>? _activityData;
   String? _currentUserRole;
   Timer? _refreshTimer;
   final SettingsService _settingsService = SettingsService();
@@ -51,7 +52,7 @@ class _GangHomePageState extends State<GangHomePage> {
       if (args is String) {
         _gangId = args;
         print('Gang ID: $_gangId');
-        
+
         final data = await ApiService.getGangHome(_gangId!);
         print('Received gang data: ${data.keys}');
         print('User weekly record: ${data['user_weekly_record']}');
@@ -67,6 +68,9 @@ class _GangHomePageState extends State<GangHomePage> {
 
         // Load monthly leaderboard
         await _loadMonthlyData();
+
+        // Load activity data
+        await _loadActivityData();
 
         if (mounted) {
           setState(() {
@@ -104,6 +108,20 @@ class _GangHomePageState extends State<GangHomePage> {
     }
   }
 
+  Future<void> _loadActivityData() async {
+    try {
+      final activityData = await ApiService.getGangActivity(_gangId!);
+      setState(() {
+        _activityData = activityData;
+      });
+    } catch (e) {
+      print('Error loading activity data: $e');
+      setState(() {
+        _activityData = [];
+      });
+    }
+  }
+
   Future<void> _saveToday(bool saved) async {
     if (_gangId == null) return;
 
@@ -112,13 +130,15 @@ class _GangHomePageState extends State<GangHomePage> {
       () async {
         await ApiService.saveToday(_gangId!, saved);
         await _loadGangData();
-        
+
         // Show notification if enabled
         await _settingsService.showNotification(
           title: saved ? 'Daily Save Completed!' : 'Save Status Updated',
-          body: saved ? 'Great job! You saved today.' : 'Your save status has been updated.',
+          body: saved
+              ? 'Great job! You saved today.'
+              : 'Your save status has been updated.',
         );
-        
+
         return true;
       },
       successMessage: saved ? 'Daily save completed!' : 'Save status updated',
@@ -186,16 +206,12 @@ class _GangHomePageState extends State<GangHomePage> {
   }
 
   Future<void> _removeMember(int userId) async {
-    final result = await ErrorHandler.handleAsyncOperation(
-      context,
-      () async {
-        await ApiService.removeMember(_gangId!, userId);
-        Navigator.pop(context);
-        await _loadGangData();
-        return true;
-      },
-      successMessage: 'Member removed successfully',
-    );
+    final result = await ErrorHandler.handleAsyncOperation(context, () async {
+      await ApiService.removeMember(_gangId!, userId);
+      Navigator.pop(context);
+      await _loadGangData();
+      return true;
+    }, successMessage: 'Member removed successfully');
 
     if (result == null) {
       // Error occurred, reload data to ensure UI is consistent
@@ -206,14 +222,10 @@ class _GangHomePageState extends State<GangHomePage> {
   Future<void> _leaveGang() async {
     if (_gangId == null) return;
 
-    final result = await ErrorHandler.handleAsyncOperation(
-      context,
-      () async {
-        await ApiService.leaveGang(_gangId!);
-        return true;
-      },
-      successMessage: 'Successfully left gang',
-    );
+    final result = await ErrorHandler.handleAsyncOperation(context, () async {
+      await ApiService.leaveGang(_gangId!);
+      return true;
+    }, successMessage: 'Successfully left gang');
 
     if (result != null && mounted) {
       Navigator.pop(context);
@@ -237,7 +249,7 @@ class _GangHomePageState extends State<GangHomePage> {
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -247,16 +259,32 @@ class _GangHomePageState extends State<GangHomePage> {
               // Mantri Display
               if (_monthlyData != null && _monthlyData!['mantri'] != null)
                 Expanded(
-                  child: Card(
-                    color: const Color(0xFFFE7743),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFFE7743), Colors.red],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFE7743).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(20.0),
                       child: Column(
                         children: [
+                          const Icon(
+                            Icons.emoji_events,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
                           const Text(
                             'Our Mantri',
                             style: TextStyle(
@@ -277,7 +305,10 @@ class _GangHomePageState extends State<GangHomePage> {
                           const SizedBox(height: 4),
                           const Text(
                             'Needs to improve',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -288,16 +319,32 @@ class _GangHomePageState extends State<GangHomePage> {
                 const SizedBox(width: 16),
               // Gang Code
               Expanded(
-                child: Card(
-                  color: const Color(0xFF273F4F),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF273F4F), Color(0xFF203E5F)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF273F4F).withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(20.0),
                     child: Column(
                       children: [
+                        const Icon(
+                          Icons.qr_code,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
                         const Text(
                           'Gang Code',
                           style: TextStyle(
@@ -328,33 +375,56 @@ class _GangHomePageState extends State<GangHomePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.white,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundColor: const Color(0xFFFE7743),
-                        child: Text(
-                          gang['name'][0].toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFE7743), Colors.red],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFE7743).withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            gang['name'][0].toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,32 +432,49 @@ class _GangHomePageState extends State<GangHomePage> {
                             Text(
                               gang['name'],
                               style: const TextStyle(
-                                fontSize: 24,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF273F4F),
                               ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               gang['description'],
                               style: const TextStyle(
-                                color: Color(0xFF273F4F),
+                                color: Color(0xFF203E5F),
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             Row(
                               children: [
-                                const Icon(
-                                  Icons.people,
-                                  color: Color(0xFF273F4F),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${_gangData!['members'].length} members',
-                                  style: const TextStyle(
-                                    color: Color(0xFF273F4F),
-                                    fontWeight: FontWeight.w500,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFEEEA),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.people,
+                                        color: Color(0xFF273F4F),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '${_gangData!['members'].length} members',
+                                        style: const TextStyle(
+                                          color: Color(0xFF273F4F),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -397,24 +484,9 @@ class _GangHomePageState extends State<GangHomePage> {
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            color: Colors.white,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: 24),
                   const Text(
-                    'Daily Check-in',
+                    'Today\'s Save',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -422,82 +494,94 @@ class _GangHomePageState extends State<GangHomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Did you save today?',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF273F4F)),
-                  ),
-                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _saveToday(true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: userTodaySave
-                                ? Colors.green
-                                : Colors.grey[300],
-                            foregroundColor: userTodaySave
-                                ? Colors.white
-                                : Colors.grey[600],
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.green, Colors.greenAccent],
                             ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: const Text(
-                            'Yes',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _saveToday(true),
+                            icon: const Icon(Icons.check_circle, size: 24),
+                            label: const Text(
+                              'Yes',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _saveToday(false),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: !userTodaySave
-                                ? Colors.red
-                                : Colors.grey[300],
-                            foregroundColor: !userTodaySave
-                                ? Colors.white
-                                : Colors.grey[600],
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.red, Colors.redAccent],
                             ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: const Text(
-                            'No',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _saveToday(false),
+                            icon: const Icon(Icons.cancel, size: 24),
+                            label: const Text(
+                              'No',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            color: Colors.white,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: 24),
                   const Text(
-                    'This Week\'s Record',
+                    'This Week\'s Progress',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -505,178 +589,244 @@ class _GangHomePageState extends State<GangHomePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildDayRecord('Mon', userWeeklyRecord[0] as bool?, 0),
-                      _buildDayRecord('Tue', userWeeklyRecord[1] as bool?, 1),
-                      _buildDayRecord('Wed', userWeeklyRecord[2] as bool?, 2),
-                      _buildDayRecord('Thu', userWeeklyRecord[3] as bool?, 3),
-                      _buildDayRecord('Fri', userWeeklyRecord[4] as bool?, 4),
-                      _buildDayRecord('Sat', userWeeklyRecord[5] as bool?, 5),
-                      _buildDayRecord('Sun', userWeeklyRecord[6] as bool?, 6),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Weekly Leaderboard',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF273F4F),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.white,
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: weeklyRecords.length,
-              itemBuilder: (context, index) {
-                final sortedRecords = List<Map<String, dynamic>>.from(
-                  weeklyRecords,
-                )..sort((a, b) => b['week_saves'].compareTo(a['week_saves']));
-                final record = sortedRecords[index];
-                final rank = index + 1;
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFEEEA),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(7, (index) {
+                        final dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                        final isToday = index == DateTime.now().weekday - 1;
+                        final isPast = index < DateTime.now().weekday - 1;
+                        final isFuture = index > DateTime.now().weekday - 1;
+                        final hasSaved =
+                            index < userWeeklyRecord.length &&
+                            userWeeklyRecord[index] == true;
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: rank == 1
-                        ? const Color(0xFFFE7743)
-                        : rank == 2
-                        ? Colors.grey[400]
-                        : rank == 3
-                        ? Colors.brown[300]
-                        : const Color(0xFF273F4F),
-                    child: Text(
-                      rank.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                        IconData icon;
+                        Color color;
+                        String label = dayNames[index];
+
+                        if (isFuture) {
+                          icon = Icons.circle_outlined;
+                          color = Colors.grey;
+                        } else if (hasSaved) {
+                          icon = Icons.check_circle;
+                          color = Colors.green;
+                        } else {
+                          icon = Icons.cancel;
+                          color = Colors.red;
+                        }
+
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isToday
+                                    ? const Color(0xFFFE7743)
+                                    : Colors.transparent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                icon,
+                                color: isToday ? Colors.white : color,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: isToday
+                                    ? const Color(0xFFFE7743)
+                                    : const Color(0xFF273F4F),
+                                fontWeight: isToday
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
                     ),
                   ),
-                  title: Text(
-                    record['username'],
-                    style: const TextStyle(
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Weekly Leaderboard',
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF273F4F),
                     ),
                   ),
-                  subtitle: Text(
-                    '${record['week_saves']} saves this week',
-                    style: const TextStyle(color: Color(0xFF273F4F)),
-                  ),
-                  trailing: record['role'] == 'host'
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFEFEEEA)),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: weeklyRecords.length,
+                      itemBuilder: (context, index) {
+                        final record = weeklyRecords[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: index == 0
+                                ? const Color(0xFFEFEEEA)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFE7743),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'HOST',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFFE7743),
+                              child: Text(
+                                record['username'][0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                            title: Text(
+                              record['username'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF273F4F),
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${record['week_saves'] ?? 0} saves this week',
+                              style: const TextStyle(color: Color(0xFF203E5F)),
+                            ),
+                            trailing: index < 3
+                                ? Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: index == 0
+                                          ? Colors.red
+                                          : index == 1
+                                          ? Colors.grey[300]
+                                          : const Color(0xFFFE7743),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: TextStyle(
+                                        color: index == 0
+                                            ? Colors.white
+                                            : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  )
+                                : null,
                           ),
-                        )
-                      : null,
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Monthly Leaderboard',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF273F4F),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_monthlyData != null)
-            Card(
-              color: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _monthlyData!['monthly_records'].length,
-                itemBuilder: (context, index) {
-                  final record = _monthlyData!['monthly_records'][index];
-                  final rank = index + 1;
-
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: rank == 1
-                          ? const Color(0xFFFE7743)
-                          : rank == 2
-                          ? Colors.grey[400]
-                          : rank == 3
-                          ? Colors.brown[300]
-                          : const Color(0xFF273F4F),
-                      child: Text(
-                        rank.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Monthly Leaderboard',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF273F4F),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_monthlyData != null &&
+                      _monthlyData!['monthly_records'] != null)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFEFEEEA)),
                       ),
-                    ),
-                    title: Text(
-                      record['username'],
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF273F4F),
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${record['monthly_saves']} saves this month',
-                      style: const TextStyle(color: Color(0xFF273F4F)),
-                    ),
-                    trailing: record['role'] == 'host'
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _monthlyData!['monthly_records'].length,
+                        itemBuilder: (context, index) {
+                          final record =
+                              _monthlyData!['monthly_records'][index];
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: index == 0
+                                  ? const Color(0xFFEFEEEA)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFE7743),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'HOST',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFFFE7743),
+                                child: Text(
+                                  record['username'][0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
+                              title: Text(
+                                record['username'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF273F4F),
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${record['monthly_saves'] ?? 0} saves this month',
+                                style: const TextStyle(
+                                  color: Color(0xFF203E5F),
+                                ),
+                              ),
+                              trailing: index < 3
+                                  ? Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: index == 0
+                                            ? Colors.red
+                                            : index == 1
+                                            ? Colors.grey[300]
+                                            : const Color(0xFFFE7743),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: TextStyle(
+                                          color: index == 0
+                                              ? Colors.white
+                                              : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          )
-                        : null,
-                  );
-                },
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     );
@@ -726,31 +876,53 @@ class _GangHomePageState extends State<GangHomePage> {
   Widget _buildMembersTab() {
     if (_gangData == null) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+        child: CircularProgressIndicator(color: Color(0xFFFE7743)),
       );
     }
 
     final members = List<Map<String, dynamic>>.from(_gangData!['members']);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Gang Members',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2634),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFE7743),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.people, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Gang Members',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2634),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.white,
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: ListView.builder(
               shrinkWrap: true,
@@ -758,56 +930,99 @@ class _GangHomePageState extends State<GangHomePage> {
               itemCount: members.length,
               itemBuilder: (context, index) {
                 final member = members[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFFFCC00),
-                    child: Text(
-                      member['user']['username'][0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF1A2634),
-                        fontWeight: FontWeight.bold,
+                return Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: index == 0
+                        ? const Color(0xFFEFEEEA)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.red, Color(0xFFFE7743)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.red.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          member['user']['username'][0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF1A2634),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(
-                    member['user']['username'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A2634),
+                    title: Text(
+                      member['user']['username'],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A2634),
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    'Role: ${member['role']}',
-                    style: const TextStyle(color: Color(0xFF203E5F)),
-                  ),
-                  trailing: member['role'] == 'host'
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFCC00),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'HOST',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1A2634),
+                    subtitle: Text(
+                      'Role: ${member['role']}',
+                      style: const TextStyle(color: Color(0xFF203E5F)),
+                    ),
+                    trailing: member['role'] == 'host'
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
-                          ),
-                        )
-                      : _currentUserRole == 'host'
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.remove_circle,
-                            color: Colors.red,
-                          ),
-                          onPressed: () => _removeMember(member['user']['id']),
-                        )
-                      : null,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.red, Color(0xFFFE7743)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'HOST',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A2634),
+                              ),
+                            ),
+                          )
+                        : _currentUserRole == 'host'
+                        ? Container(
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.remove_circle,
+                                color: Colors.red,
+                                size: 24,
+                              ),
+                              onPressed: () =>
+                                  _removeMember(member['user']['id']),
+                            ),
+                          )
+                        : null,
+                  ),
                 );
               },
             ),
@@ -819,52 +1034,188 @@ class _GangHomePageState extends State<GangHomePage> {
 
   Widget _buildActivityTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2634),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFE7743),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.timeline,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Recent Activity',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A2634),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            color: Colors.white,
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(24.0),
+          const SizedBox(height: 20),
+          if (_activityData == null || _activityData!.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
               child: Column(
                 children: [
-                  Icon(Icons.timeline, size: 48, color: Color(0xFF203E5F)),
-                  SizedBox(height: 16),
-                  Text(
-                    'Activity tracking coming soon!',
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFEEEA),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.timeline,
+                      size: 48,
+                      color: Color(0xFF203E5F),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'No recent activity',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1A2634),
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Track gang activities and achievements',
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Activity will appear here as members interact with the gang',
                     style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
                     textAlign: TextAlign.center,
                   ),
                 ],
               ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _activityData!.length,
+              itemBuilder: (context, index) {
+                final activity = _activityData![index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFFE7743), Colors.red],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFE7743).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          (activity['username'] ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      activity['message'] ?? 'Activity',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF273F4F),
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Text(
+                      activity['timestamp'] ?? '',
+                      style: const TextStyle(
+                        color: Color(0xFF203E5F),
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFEEEA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _getActivityIcon(activity['type']),
+                        color: const Color(0xFFFE7743),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
         ],
       ),
     );
+  }
+
+  IconData _getActivityIcon(String? type) {
+    switch (type) {
+      case 'save':
+        return Icons.check_circle;
+      case 'join':
+        return Icons.person_add;
+      case 'leave':
+        return Icons.person_remove;
+      case 'mantri':
+        return Icons.emoji_events;
+      case 'weekly_reset':
+        return Icons.refresh;
+      default:
+        return Icons.info;
+    }
   }
 
   @override
@@ -901,46 +1252,94 @@ class _GangHomePageState extends State<GangHomePage> {
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
         backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF273F4F), Color(0xFF203E5F)],
+            ),
+          ),
+        ),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.chat, color: Colors.white),
-            onPressed: () =>
-                Navigator.pushNamed(context, '/chat', arguments: _gangId),
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.chat, color: Colors.white),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/chat', arguments: _gangId),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.white),
-            onPressed: _leaveGang,
+          Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.exit_to_app, color: Colors.white),
+              onPressed: _leaveGang,
+            ),
           ),
         ],
       ),
       body: tabs[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF273F4F),
-        selectedItemColor: const Color(0xFFFE7743),
-        unselectedItemColor: Colors.white70,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Members'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timeline),
-            label: 'Activity',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF273F4F), Color(0xFF203E5F)],
           ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          selectedItemColor: const Color(0xFFFE7743),
+          unselectedItemColor: Colors.white70,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Members'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.timeline),
+              label: 'Activity',
+            ),
+          ],
+        ),
       ),
     );
   }

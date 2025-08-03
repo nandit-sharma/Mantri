@@ -199,13 +199,13 @@ class _JoinGangPageState extends State<JoinGangPage> {
                           children: [
                             CircleAvatar(
                               radius: 25,
-                              backgroundColor: const Color(0xFFFFCC00),
+                              backgroundColor: Colors.red,
                               child: Text(
                                 _foundGang!['name'][0].toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A2634),
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -260,8 +260,8 @@ class _JoinGangPageState extends State<JoinGangPage> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _requestToJoin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFCC00),
-                              foregroundColor: const Color(0xFF1A2634),
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),

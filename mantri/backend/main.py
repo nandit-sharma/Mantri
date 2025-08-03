@@ -613,6 +613,51 @@ def delete_account(current_user: User = Depends(get_current_user), db: Session =
     print(f"Account deleted successfully for user {current_user.id}")
     return {"message": "Account deleted successfully"}
 
+@app.get("/gangs/{gang_id}/activity")
+def get_gang_activity(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"Getting activity for gang: {gang_id}")
+    
+    # Check if gang exists
+    gang = db.query(Gang).filter(Gang.id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if user is a member
+    member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this gang")
+    
+    # For now, return mock activity data
+    # In a real implementation, you would store activity logs in the database
+    activities = [
+        {
+            "id": 1,
+            "type": "save",
+            "message": f"{current_user.username} saved today",
+            "username": current_user.username,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        },
+        {
+            "id": 2,
+            "type": "join",
+            "message": f"{current_user.username} joined the gang",
+            "username": current_user.username,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        },
+        {
+            "id": 3,
+            "type": "mantri",
+            "message": f"{current_user.username} became the Mantri",
+            "username": current_user.username,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        },
+    ]
+    
+    return {"activities": activities}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
