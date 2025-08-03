@@ -17,19 +17,22 @@ import 'services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize settings and notifications
-  final settingsService = SettingsService();
-  await settingsService.initialize();
+  try {
+    final settingsService = SettingsService();
+    await settingsService.initialize();
 
-  // Schedule daily notifications
-  final notificationsEnabled = await settingsService.getNotificationsEnabled();
-  if (notificationsEnabled) {
-    final notificationService = NotificationService();
-    await notificationService.scheduleDailyReminder();
+    final notificationsEnabled = await settingsService.getNotificationsEnabled();
+    if (notificationsEnabled) {
+      final notificationService = NotificationService();
+      await notificationService.scheduleDailyReminder();
+    }
+  } catch (e) {
+    print("Error in initialization: $e");
   }
 
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

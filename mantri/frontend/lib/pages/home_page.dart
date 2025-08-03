@@ -58,7 +58,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
-          'Ｏｕｒ Ｍａｎｔｒｉ',
+          'Ｏｕｒ  Ｍａｎｔｒｉ  👑',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF273F4F),

@@ -17,9 +17,10 @@ class _GangHomePageState extends State<GangHomePage> {
   bool _isLoading = true;
   String? _gangId;
   Map<String, dynamic>? _monthlyData;
-  List<Map<String, dynamic>>? _activityData;
+  bool _hasUnreadMessages = false;
   String? _currentUserRole;
   Timer? _refreshTimer;
+  Timer? _unreadCheckTimer;
   final SettingsService _settingsService = SettingsService();
 
   @override
@@ -34,6 +35,7 @@ class _GangHomePageState extends State<GangHomePage> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _unreadCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -41,6 +43,12 @@ class _GangHomePageState extends State<GangHomePage> {
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted && _gangId != null) {
         _loadGangData();
+      }
+    });
+
+    _unreadCheckTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted && _gangId != null) {
+        _checkUnreadMessages();
       }
     });
   }
@@ -69,8 +77,8 @@ class _GangHomePageState extends State<GangHomePage> {
         // Load monthly leaderboard
         await _loadMonthlyData();
 
-        // Load activity data
-        await _loadActivityData();
+        // Check for unread messages
+        await _checkUnreadMessages();
 
         if (mounted) {
           setState(() {
@@ -108,17 +116,27 @@ class _GangHomePageState extends State<GangHomePage> {
     }
   }
 
-  Future<void> _loadActivityData() async {
+  Future<void> _checkUnreadMessages() async {
     try {
-      final activityData = await ApiService.getGangActivity(_gangId!);
-      setState(() {
-        _activityData = activityData;
-      });
+      final messages = await ApiService.getChatMessages(_gangId!);
+      final currentUser = await ApiService.getCurrentUser();
+
+      // Check if there are any messages from other users after the last message from current user
+      bool hasUnread = false;
+      if (messages.isNotEmpty) {
+        final lastMessage = messages.last;
+        if (lastMessage['user']['id'] != currentUser['id']) {
+          hasUnread = true;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _hasUnreadMessages = hasUnread;
+        });
+      }
     } catch (e) {
-      print('Error loading activity data: $e');
-      setState(() {
-        _activityData = [];
-      });
+      print('Error checking unread messages: $e');
     }
   }
 
@@ -1032,190 +1050,13 @@ class _GangHomePageState extends State<GangHomePage> {
     );
   }
 
-  Widget _buildActivityTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFE7743),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.timeline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Recent Activity',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2634),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_activityData == null || _activityData!.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFEEEA),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.timeline,
-                      size: 48,
-                      color: Color(0xFF203E5F),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'No recent activity',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A2634),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Activity will appear here as members interact with the gang',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _activityData!.length,
-              itemBuilder: (context, index) {
-                final activity = _activityData![index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFFE7743), Colors.red],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFE7743).withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          (activity['username'] ?? 'U')[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      activity['message'] ?? 'Activity',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF273F4F),
-                        fontSize: 16,
-                      ),
-                    ),
-                    subtitle: Text(
-                      activity['timestamp'] ?? '',
-                      style: const TextStyle(
-                        color: Color(0xFF203E5F),
-                        fontSize: 12,
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFEEEA),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _getActivityIcon(activity['type']),
-                        color: const Color(0xFFFE7743),
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
+  Widget _buildChatTab() {
+    return const Center(
+      child: Text(
+        'Chat',
+        style: TextStyle(fontSize: 18, color: Color(0xFF203E5F)),
       ),
     );
-  }
-
-  IconData _getActivityIcon(String? type) {
-    switch (type) {
-      case 'save':
-        return Icons.check_circle;
-      case 'join':
-        return Icons.person_add;
-      case 'leave':
-        return Icons.person_remove;
-      case 'mantri':
-        return Icons.emoji_events;
-      case 'weekly_reset':
-        return Icons.refresh;
-      default:
-        return Icons.info;
-    }
   }
 
   @override
@@ -1241,7 +1082,7 @@ class _GangHomePageState extends State<GangHomePage> {
     final List<Widget> tabs = [
       _buildHomeTab(),
       _buildMembersTab(),
-      _buildActivityTab(),
+      _buildChatTab(),
     ];
 
     return Scaffold(
@@ -1281,18 +1122,6 @@ class _GangHomePageState extends State<GangHomePage> {
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.chat, color: Colors.white),
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/chat', arguments: _gangId),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
               color: Colors.red.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -1322,21 +1151,60 @@ class _GangHomePageState extends State<GangHomePage> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
+            if (index == 2) {
+              // Chat tab - directly navigate to chat
+              setState(() {
+                _hasUnreadMessages = false;
+              });
+              Navigator.pushNamed(context, '/chat', arguments: _gangId);
+            } else {
+              setState(() {
+                _currentIndex = index;
+              });
+            }
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           selectedItemColor: const Color(0xFFFE7743),
           unselectedItemColor: Colors.white70,
           elevation: 0,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Members'),
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Members',
+            ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.timeline),
-              label: 'Activity',
+              icon: Stack(
+                children: [
+                  const Icon(Icons.chat),
+                  if (_hasUnreadMessages)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: const Text(
+                          '',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              label: 'Chat',
             ),
           ],
         ),
