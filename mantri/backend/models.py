@@ -25,7 +25,7 @@ class Gang(Base):
     description = Column(Text)
     is_public = Column(Boolean, default=True)
     gang_id = Column(String, unique=True, index=True)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    host_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     members = relationship("GangMember", back_populates="gang")

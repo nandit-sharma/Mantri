@@ -152,7 +152,7 @@ def create_gang(gang: GangCreate, current_user: User = Depends(get_current_user)
         description=gang.description,
         is_public=gang.is_public,
         gang_id=gang_id,
-        created_by=current_user.id
+        host_id=current_user.id
     )
     db.add(db_gang)
     db.commit()
