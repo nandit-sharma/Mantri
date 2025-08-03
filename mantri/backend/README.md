@@ -1,145 +1,56 @@
-# Mantri Backend
+# Mantri Backend API
 
-A FastAPI backend for the Mantri gang management application.
+FastAPI backend for the Mantri app with PostgreSQL database support.
 
-## Features
+## 🚀 Render Deployment
 
-- **User Authentication**: JWT-based authentication with registration and login
-- **Gang Management**: Create, join, and manage gangs
-- **Daily Save Tracking**: Track daily saves for each user in their gangs
-- **Weekly Leaderboards**: Automatic weekly leaderboard generation
-- **Real-time Updates**: Background tasks for daily and weekly resets
+### Environment Variables
 
-## Setup
+Set these environment variables in your Render service:
 
-### Prerequisites
-
-- Python 3.8+
-- PostgreSQL database
-- pip (Python package manager)
-
-### Installation
-
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Set up PostgreSQL database**:
-   ```sql
-   CREATE DATABASE mantri_db;
-   CREATE USER mantri_user WITH PASSWORD 'mantri_password';
-   GRANT ALL PRIVILEGES ON DATABASE mantri_db TO mantri_user;
-   ```
-
-3. **Configure environment variables**:
-   Create a `.env` file in the backend directory:
-   ```
-   DATABASE_URL=postgresql://mantri_user:mantri_password@localhost:5432/mantri_db
-   SECRET_KEY=your-secret-key-here-change-in-production
-   ALGORITHM=HS256
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
-   ```
-
-4. **Run the application**:
-   ```bash
-   python main.py
-   ```
-
-   Or using uvicorn directly:
-   ```bash
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-## API Endpoints
-
-### Authentication
-- `POST /register` - Register a new user
-- `POST /login` - Login user
-- `GET /me` - Get current user info
-
-### Gangs
-- `POST /gangs` - Create a new gang
-- `GET /gangs/{gang_id}` - Get gang details
-- `POST /gangs/{gang_id}/join` - Join a gang
-- `GET /gangs/{gang_id}/home` - Get gang home data
-- `POST /gangs/{gang_id}/save` - Save today's status
-- `GET /user/gangs` - Get user's gangs
-
-## Database Schema
-
-### Users
-- `id`: Primary key
-- `email`: Unique email address
-- `username`: Unique username
-- `hashed_password`: Bcrypt hashed password
-- `created_at`: Timestamp
-
-### Gangs
-- `id`: Primary key
-- `name`: Gang name
-- `description`: Gang description
-- `is_public`: Public/private status
-- `gang_id`: Unique 5-digit ID
-- `created_by`: User ID of creator
-- `created_at`: Timestamp
-
-### Gang Members
-- `id`: Primary key
-- `user_id`: Foreign key to users
-- `gang_id`: Foreign key to gangs
-- `role`: 'host' or 'member'
-- `joined_at`: Timestamp
-
-### Daily Saves
-- `id`: Primary key
-- `user_id`: Foreign key to users
-- `gang_id`: Foreign key to gangs
-- `saved`: Boolean save status
-- `save_date`: Date of save
-- `created_at`: Timestamp
-
-## Background Tasks
-
-The application includes background tasks for:
-
-1. **Daily Reset**: At 1 AM daily, the system resets daily save status
-2. **Weekly Reset**: At 1 AM on Mondays, the system resets weekly leaderboards
-
-## Security Features
-
-- JWT token authentication
-- Password hashing with bcrypt
-- Input validation with Pydantic
-- SQL injection protection with SQLAlchemy
-
-## Development
-
-### Running Tests
-```bash
-pytest
+#### Required Variables:
+```
+DATABASE_URL=postgresql://mantri_user:mqU4UjjZjGTru9dSgijxZYicLudE2Psv@dpg-d27r4ru3jp1c73fli38g-a.oregon-postgres.render.com/mantri
+SECRET_KEY=ka4HpgwYemg-6krueqV1ydlWykAk18kT14Xmvy58YOo
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-### Database Migrations
-```bash
-alembic upgrade head
+#### Recommended Variables:
+```
+BACKEND_CORS_ORIGINS=https://your-frontend-app.vercel.app,http://localhost:3000
+PROJECT_NAME=Mantri API
+VERSION=1.0.0
+API_V1_STR=/api/v1
+ENVIRONMENT=production
 ```
 
-### Code Formatting
-```bash
-black .
-isort .
-```
+### Render Service Configuration
 
-## Production Deployment
+1. **Build Command**: `pip install -r requirements.txt`
+2. **Start Command**: `python start.py`
+3. **Python Version**: 3.11 or 3.12
 
-1. **Set up a production database**
-2. **Configure environment variables**
-3. **Use a production WSGI server like Gunicorn**
-4. **Set up reverse proxy (nginx)**
-5. **Configure SSL certificates**
+### API Endpoints
 
-Example production command:
-```bash
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-``` 
+- **Base URL**: `https://your-render-service.onrender.com`
+- **Documentation**: `https://your-render-service.onrender.com/docs`
+- **OpenAPI**: `https://your-render-service.onrender.com/api/v1/openapi.json`
+
+### Database
+
+The app will automatically create all required tables on startup.
+
+### CORS Configuration
+
+Update `BACKEND_CORS_ORIGINS` with your frontend domain(s):
+- For development: `http://localhost:3000`
+- For production: `https://your-frontend-app.vercel.app`
+- For multiple domains: `https://domain1.com,https://domain2.com`
+
+## 🛠️ Local Development
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Set up environment variables (see `env_template.txt`)
+3. Run: `python start.py`
+4. Access API docs at: `http://localhost:8000/docs` 

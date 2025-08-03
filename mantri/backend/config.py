@@ -9,5 +9,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "ka4HpgwYemg-6krueqV1ydlWykAk18kT14Xmvy58YOo"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # CORS Configuration
+    BACKEND_CORS_ORIGINS: str = "*"
+    
+    # Project Configuration
+    PROJECT_NAME: str = "Mantri API"
+    VERSION: str = "1.0.0"
+    API_V1_STR: str = "/api/v1"
+    
+    # Environment
+    ENVIRONMENT: str = "production"
 
 settings = Settings() 

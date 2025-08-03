@@ -16,13 +16,20 @@ from utils import generate_gang_id, get_week_start_date, get_week_end_date, get_
 
 Base.metadata.create_all(bind=engine)
 
-# app = FastAPI(title="Mantri API", version="1.0.0")
-from fastapi import FastAPI
-app = FastAPI()
+from config import settings
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+# Parse CORS origins
+origins = settings.BACKEND_CORS_ORIGINS.split(",") if settings.BACKEND_CORS_ORIGINS != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,0 +1,18 @@
+# Database Configuration
+DATABASE_URL=postgresql://mantri_user:mqU4UjjZjGTru9dSgijxZYicLudE2Psv@dpg-d27r4ru3jp1c73fli38g-a.oregon-postgres.render.com/mantri
+
+# Security Configuration
+SECRET_KEY=ka4HpgwYemg-6krueqV1ydlWykAk18kT14Xmvy58YOo
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# CORS Configuration
+BACKEND_CORS_ORIGINS=https://your-frontend-app.vercel.app,http://localhost:3000
+
+# Project Configuration
+PROJECT_NAME=Mantri API
+VERSION=1.0.0
+API_V1_STR=/api/v1
+
+# Environment
+ENVIRONMENT=production 
