@@ -245,4 +245,125 @@ class ApiService {
       throw Exception(error['detail'] ?? 'Failed to send message');
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getGangMembers(
+    String gangId,
+  ) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/gangs/$gangId/members'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to get gang members');
+    }
+  }
+
+  static Future<void> removeMember(String gangId, int userId) async {
+    final headers = await _getHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/gangs/$gangId/members/$userId'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to remove member');
+    }
+  }
+
+  static Future<void> leaveGang(String gangId) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/gangs/$gangId/leave'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to leave gang');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getMonthlyLeaderboard(
+    String gangId,
+  ) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/gangs/$gangId/monthly-leaderboard'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to get monthly leaderboard');
+    }
+  }
+
+  static Future<void> clearChat(String gangId) async {
+    final headers = await _getHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/gangs/$gangId/chat'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to clear chat');
+    }
+  }
+
+  static Future<void> updateProfile(String username) async {
+    final headers = await _getHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/profile'),
+      headers: headers,
+      body: json.encode({'username': username}),
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to update profile');
+    }
+  }
+
+  static Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    final headers = await _getHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/change-password'),
+      headers: headers,
+      body: json.encode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to change password');
+    }
+  }
+
+  static Future<void> deleteAccount() async {
+    final headers = await _getHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/users/account'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to delete account');
+    }
+  }
 }

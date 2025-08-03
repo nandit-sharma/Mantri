@@ -11,19 +11,22 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> userGangs = [];
+  Map<String, dynamic>? userProfile;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserGangs();
+    _loadUserData();
   }
 
-  Future<void> _loadUserGangs() async {
+  Future<void> _loadUserData() async {
     try {
       final gangs = await ApiService.getUserGangs();
+      final profile = await ApiService.getCurrentUser();
       setState(() {
         userGangs = gangs;
+        userProfile = profile;
         _isLoading = false;
       });
     } catch (e) {
@@ -33,7 +36,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load gangs: ${e.toString()}'),
+            content: Text('Failed to load data: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -52,66 +55,59 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Mantri',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFFFFCC00)),
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings, color: Color(0xFFFFCC00)),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () => Navigator.pushNamed(context, '/settings'),
           ),
         ],
       ),
       drawer: Drawer(
         child: Container(
-          color: const Color(0xFF1A2634),
+          color: const Color(0xFF273F4F),
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFFFFCC00)),
+                decoration: const BoxDecoration(color: Color(0xFFFE7743)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const CircleAvatar(
                       radius: 30,
-                      backgroundColor: Color(0xFF1A2634),
-                      child: Icon(
-                        Icons.person,
-                        color: Color(0xFFFFCC00),
-                        size: 30,
-                      ),
+                      backgroundColor: Color(0xFF273F4F),
+                      child: Icon(Icons.person, color: Colors.white, size: 30),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Mantri',
-                      style: TextStyle(
-                        color: Color(0xFF1A2634),
+                    Text(
+                      userProfile?['username'] ?? 'User',
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Text(
-                      'Save together, stay together',
-                      style: TextStyle(color: Color(0xFF1A2634), fontSize: 14),
+                    Text(
+                      userProfile?['email'] ?? 'user@example.com',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ],
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.home, color: Color(0xFFFFCC00)),
+                leading: const Icon(Icons.home, color: Colors.white),
                 title: const Text(
                   'Home',
                   style: TextStyle(color: Colors.white),
@@ -121,35 +117,18 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.group, color: Color(0xFFFFCC00)),
-                title: const Text(
-                  'My Gangs',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(
-                  Icons.leaderboard,
-                  color: Color(0xFFFFCC00),
-                ),
+                leading: const Icon(Icons.leaderboard, color: Colors.white),
                 title: const Text(
                   'Leaderboard',
                   style: TextStyle(color: Colors.white),
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Leaderboard - Feature coming soon'),
-                    ),
-                  );
+                  Navigator.pushNamed(context, '/leaderboard');
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person, color: Color(0xFFFFCC00)),
+                leading: const Icon(Icons.person, color: Colors.white),
                 title: const Text(
                   'Profile',
                   style: TextStyle(color: Colors.white),
@@ -160,7 +139,7 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.settings, color: Color(0xFFFFCC00)),
+                leading: const Icon(Icons.settings, color: Colors.white),
                 title: const Text(
                   'Settings',
                   style: TextStyle(color: Colors.white),
@@ -193,7 +172,7 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 fontSize: 18,
                 fontStyle: FontStyle.italic,
-                color: Color(0xFF203E5F),
+                color: Color(0xFF273F4F),
               ),
               textAlign: TextAlign.center,
             ),

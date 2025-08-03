@@ -120,31 +120,60 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _clearChat() async {
+    if (_gangId == null) return;
+
+    try {
+      await ApiService.clearChat(_gangId!);
+      await _loadMessages();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chat cleared successfully'),
+            backgroundColor: Color(0xFFFE7743),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clear chat: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Gang Chat',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFFFCC00)),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.clear_all, color: Colors.white),
+            onPressed: _clearChat,
+          ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+                    child: CircularProgressIndicator(color: Color(0xFFFE7743)),
                   )
                 : _messages.isEmpty
                 ? const Center(
@@ -154,14 +183,14 @@ class _ChatPageState extends State<ChatPage> {
                         Icon(
                           Icons.chat_bubble_outline,
                           size: 64,
-                          color: Color(0xFF203E5F),
+                          color: Color(0xFF273F4F),
                         ),
                         SizedBox(height: 16),
                         Text(
                           'No messages yet',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Color(0xFF203E5F),
+                            color: Color(0xFF273F4F),
                           ),
                         ),
                         SizedBox(height: 8),
@@ -169,7 +198,7 @@ class _ChatPageState extends State<ChatPage> {
                           'Start the conversation!',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF203E5F),
+                            color: Color(0xFF273F4F),
                           ),
                         ),
                       ],
@@ -194,11 +223,11 @@ class _ChatPageState extends State<ChatPage> {
                             if (!isCurrentUser) ...[
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: const Color(0xFFFFCC00),
+                                backgroundColor: const Color(0xFFFE7743),
                                 child: Text(
                                   message['user']['username'][0].toUpperCase(),
                                   style: const TextStyle(
-                                    color: Color(0xFF1A2634),
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -214,7 +243,7 @@ class _ChatPageState extends State<ChatPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isCurrentUser
-                                      ? const Color(0xFF203E5F)
+                                      ? const Color(0xFF273F4F)
                                       : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
@@ -234,7 +263,7 @@ class _ChatPageState extends State<ChatPage> {
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 12,
-                                          color: Color(0xFF203E5F),
+                                          color: Color(0xFF273F4F),
                                         ),
                                       ),
                                     const SizedBox(height: 4),
@@ -243,18 +272,8 @@ class _ChatPageState extends State<ChatPage> {
                                       style: TextStyle(
                                         color: isCurrentUser
                                             ? Colors.white
-                                            : const Color(0xFF1A2634),
+                                            : const Color(0xFF273F4F),
                                         fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _formatTime(message['created_at']),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: isCurrentUser
-                                            ? Colors.white70
-                                            : Colors.grey[600],
                                       ),
                                     ),
                                   ],
@@ -265,11 +284,11 @@ class _ChatPageState extends State<ChatPage> {
                               const SizedBox(width: 8),
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: const Color(0xFFFFCC00),
+                                backgroundColor: const Color(0xFFFE7743),
                                 child: Text(
                                   message['user']['username'][0].toUpperCase(),
                                   style: const TextStyle(
-                                    color: Color(0xFF1A2634),
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -303,12 +322,12 @@ class _ChatPageState extends State<ChatPage> {
                       hintText: 'Type a message...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(24)),
-                        borderSide: BorderSide(color: Color(0xFF203E5F)),
+                        borderSide: BorderSide(color: Color(0xFF273F4F)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(24)),
                         borderSide: BorderSide(
-                          color: Color(0xFF203E5F),
+                          color: Color(0xFF273F4F),
                           width: 2,
                         ),
                       ),
@@ -323,8 +342,8 @@ class _ChatPageState extends State<ChatPage> {
                 const SizedBox(width: 12),
                 FloatingActionButton(
                   onPressed: _sendMessage,
-                  backgroundColor: const Color(0xFF203E5F),
-                  child: const Icon(Icons.send, color: Color(0xFFFFCC00)),
+                  backgroundColor: const Color(0xFFFE7743),
+                  child: const Icon(Icons.send, color: Colors.white),
                 ),
               ],
             ),
@@ -332,25 +351,5 @@ class _ChatPageState extends State<ChatPage> {
         ],
       ),
     );
-  }
-
-  String _formatTime(String dateTimeString) {
-    try {
-      final dateTime = DateTime.parse(dateTimeString);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-
-      if (difference.inDays > 0) {
-        return '${difference.inDays}d ago';
-      } else if (difference.inHours > 0) {
-        return '${difference.inHours}h ago';
-      } else if (difference.inMinutes > 0) {
-        return '${difference.inMinutes}m ago';
-      } else {
-        return 'now';
-      }
-    } catch (e) {
-      return 'now';
-    }
   }
 }

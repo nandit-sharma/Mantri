@@ -12,7 +12,6 @@ class _CreateGangPageState extends State<CreateGangPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  bool _isPublic = true;
   bool _isLoading = false;
 
   @override
@@ -32,14 +31,14 @@ class _CreateGangPageState extends State<CreateGangPage> {
         final gang = await ApiService.createGang(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
-          isPublic: _isPublic,
+          isPublic: true,
         );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Gang "${gang['name']}" created successfully!'),
-              backgroundColor: const Color(0xFF203E5F),
+              backgroundColor: const Color(0xFFFE7743),
             ),
           );
           await Future.delayed(const Duration(seconds: 1));
@@ -73,18 +72,15 @@ class _CreateGangPageState extends State<CreateGangPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Create Gang',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -109,7 +105,7 @@ class _CreateGangPageState extends State<CreateGangPage> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2634),
+                          color: Color(0xFF273F4F),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -146,18 +142,6 @@ class _CreateGangPageState extends State<CreateGangPage> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 20),
-                      SwitchListTile(
-                        title: const Text('Public Gang'),
-                        subtitle: const Text('Anyone can join this gang'),
-                        value: _isPublic,
-                        onChanged: (value) {
-                          setState(() {
-                            _isPublic = value;
-                          });
-                        },
-                        activeColor: const Color(0xFF203E5F),
-                      ),
                     ],
                   ),
                 ),
@@ -168,7 +152,7 @@ class _CreateGangPageState extends State<CreateGangPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _createGang,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF203E5F),
+                    backgroundColor: const Color(0xFFFE7743),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

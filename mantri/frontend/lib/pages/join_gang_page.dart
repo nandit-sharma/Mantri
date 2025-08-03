@@ -63,7 +63,7 @@ class _JoinGangPageState extends State<JoinGangPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Successfully joined "${_foundGang!['name']}"'),
-              backgroundColor: const Color(0xFF203E5F),
+              backgroundColor: const Color(0xFFFE7743),
             ),
           );
           await Future.delayed(const Duration(seconds: 1));
@@ -93,18 +93,15 @@ class _JoinGangPageState extends State<JoinGangPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Join Gang',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

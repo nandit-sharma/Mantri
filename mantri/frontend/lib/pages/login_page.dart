@@ -55,18 +55,15 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Login',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -81,14 +78,14 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2634),
+                  color: Color(0xFF273F4F),
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 'Sign in to continue with Mantri',
-                style: TextStyle(fontSize: 16, color: Color(0xFF203E5F)),
+                style: TextStyle(fontSize: 16, color: Color(0xFF273F4F)),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),

@@ -9,9 +9,17 @@ import 'pages/profile_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
+import 'pages/leaderboard_page.dart';
 import 'services/api_service.dart';
+import 'services/settings_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize settings and notifications
+  final settingsService = SettingsService();
+  await settingsService.initialize();
+  
   runApp(const MyApp());
 }
 
@@ -23,22 +31,22 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mantri',
       theme: ThemeData(
-        primaryColor: const Color(0xFF1A2634),
-        scaffoldBackgroundColor: const Color(0xFFFEE5B1),
+        primaryColor: const Color(0xFF273F4F),
+        scaffoldBackgroundColor: const Color(0xFFEFEEEA),
         colorScheme: const ColorScheme.light(
-          primary: Color(0xFF1A2634),
-          secondary: Color(0xFF203E5F),
-          tertiary: Color(0xFFFFCC00),
+          primary: Color(0xFF273F4F),
+          secondary: Color(0xFFFE7743),
+          tertiary: Color(0xFF000000),
         ),
         textTheme: const TextTheme(
-          headlineLarge: TextStyle(color: Color(0xFF1A2634)),
-          headlineMedium: TextStyle(color: Color(0xFF1A2634)),
-          bodyLarge: TextStyle(color: Color(0xFF1A2634)),
-          bodyMedium: TextStyle(color: Color(0xFF203E5F)),
+          headlineLarge: TextStyle(color: Color(0xFF273F4F)),
+          headlineMedium: TextStyle(color: Color(0xFF273F4F)),
+          bodyLarge: TextStyle(color: Color(0xFF273F4F)),
+          bodyMedium: TextStyle(color: Color(0xFF273F4F)),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF203E5F),
+            backgroundColor: const Color(0xFFFE7743),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -58,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/chat': (context) => const ChatPage(),
         '/profile': (context) => const ProfilePage(),
         '/settings': (context) => const SettingsPage(),
+        '/leaderboard': (context) => const LeaderboardPage(),
       },
     );
   }
@@ -113,9 +122,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFFEE5B1),
+        backgroundColor: Color(0xFFEFEEEA),
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF203E5F)),
+          child: CircularProgressIndicator(color: Color(0xFFFE7743)),
         ),
       );
     }

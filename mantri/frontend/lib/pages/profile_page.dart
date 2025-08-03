@@ -11,11 +11,19 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userProfile;
   bool _isLoading = true;
+  final _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserProfile() async {
@@ -30,8 +38,8 @@ class _ProfilePageState extends State<ProfilePage> {
           'currentStreak': userData['current_streak'] ?? 0,
           'bestStreak': userData['best_streak'] ?? 0,
           'gangsJoined': userData['gangs_joined'] ?? 0,
-          'achievements': userData['achievements'] ?? [],
         };
+        _nameController.text = userProfile!['name'];
         _isLoading = false;
       });
     } catch (e) {
@@ -44,64 +52,143 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _updateProfile() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        await ApiService.updateProfile(_nameController.text.trim());
+        await _loadUserProfile();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Color(0xFFFE7743),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update profile: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showUpdateDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Profile'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a username';
+                  }
+                  if (value.length < 3) {
+                    return 'Username must be at least 3 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Photo upload coming soon!',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateProfile();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFE7743),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFEE5B1),
+        backgroundColor: const Color(0xFFEFEEEA),
         appBar: AppBar(
           title: const Text(
             'Profile',
-            style: TextStyle(
-              color: Color(0xFFFFCC00),
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          backgroundColor: const Color(0xFF1A2634),
+          backgroundColor: const Color(0xFF273F4F),
           elevation: 0,
-          iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFE7743)),
+        ),
       );
     }
 
     if (userProfile == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFFEE5B1),
+        backgroundColor: const Color(0xFFEFEEEA),
         appBar: AppBar(
           title: const Text(
             'Profile',
-            style: TextStyle(
-              color: Color(0xFFFFCC00),
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          backgroundColor: const Color(0xFF1A2634),
+          backgroundColor: const Color(0xFF273F4F),
           elevation: 0,
-          iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: const Center(child: Text('Failed to load profile')),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFEE5B1),
+      backgroundColor: const Color(0xFFEFEEEA),
       appBar: AppBar(
         title: const Text(
           'Profile',
-          style: TextStyle(
-            color: Color(0xFFFFCC00),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1A2634),
+        backgroundColor: const Color(0xFF273F4F),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFFFCC00)),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.white),
+            onPressed: _showUpdateDialog,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
               color: Colors.white,
@@ -115,13 +202,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     CircleAvatar(
                       radius: 50,
-                      backgroundColor: const Color(0xFFFFCC00),
+                      backgroundColor: const Color(0xFFFE7743),
                       child: Text(
                         userProfile!['avatar'],
                         style: const TextStyle(
-                          fontSize: 36,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A2634),
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -131,214 +218,183 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A2634),
+                        color: Color(0xFF273F4F),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       userProfile!['email'],
                       style: const TextStyle(
-                        color: Color(0xFF203E5F),
                         fontSize: 16,
+                        color: Color(0xFF273F4F),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatItem(
-                          'Total Saves',
-                          userProfile!['totalSaves'].toString(),
-                        ),
-                        _buildStatItem(
-                          'Current Streak',
-                          userProfile!['currentStreak'].toString(),
-                        ),
-                        _buildStatItem(
-                          'Best Streak',
-                          userProfile!['bestStreak'].toString(),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Statistics',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2634),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              color: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    _buildStatRow(
-                      'Gangs Joined',
-                      userProfile!['gangsJoined'].toString(),
-                      Icons.group,
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const Divider(),
-                    _buildStatRow(
-                      'Total Saves',
-                      userProfile!['totalSaves'].toString(),
-                      Icons.save,
-                    ),
-                    const Divider(),
-                    _buildStatRow(
-                      'Current Streak',
-                      '${userProfile!['currentStreak']} days',
-                      Icons.local_fire_department,
-                    ),
-                    const Divider(),
-                    _buildStatRow(
-                      'Best Streak',
-                      '${userProfile!['bestStreak']} days',
-                      Icons.emoji_events,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Achievements',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A2634),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: userProfile!['achievements'].length,
-              itemBuilder: (context, index) {
-                final achievement = userProfile!['achievements'][index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  color: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFFFFCC00),
-                      child: const Icon(
-                        Icons.emoji_events,
-                        color: Color(0xFF1A2634),
-                      ),
-                    ),
-                    title: Text(
-                      achievement['name'] ?? 'Achievement',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A2634),
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          achievement['description'] ?? 'Achievement earned',
-                          style: const TextStyle(color: Color(0xFF203E5F)),
-                        ),
-                        Text(
-                          'Earned on ${achievement['date'] ?? 'Unknown'}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.timeline,
+                            size: 32,
+                            color: Color(0xFFFE7743),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            '${userProfile!['totalSaves']}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                          const Text(
+                            'Total Saves',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit Profile - Feature coming soon'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit Profile'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF203E5F),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.local_fire_department,
+                            size: 32,
+                            color: Color(0xFFFE7743),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${userProfile!['currentStreak']}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                          const Text(
+                            'Current Streak',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.emoji_events,
+                            size: 32,
+                            color: Color(0xFFFE7743),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${userProfile!['bestStreak']}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                          const Text(
+                            'Best Streak',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.group,
+                            size: 32,
+                            color: Color(0xFFFE7743),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${userProfile!['gangsJoined']}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                          const Text(
+                            'Gangs Joined',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF273F4F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A2634),
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Color(0xFF203E5F), fontSize: 14),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF203E5F), size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: Color(0xFF1A2634), fontSize: 16),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2634),
-              fontSize: 16,
-            ),
-          ),
-        ],
       ),
     );
   }

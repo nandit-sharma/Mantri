@@ -91,14 +91,14 @@ class ChatMessageBase(BaseModel):
     message: str
 
 class ChatMessageCreate(ChatMessageBase):
-    gang_id: int
+    pass
 
 class ChatMessage(ChatMessageBase):
     id: int
     user_id: int
     gang_id: int
     created_at: datetime
-    user: User
+    user: Optional[User] = None
 
     class Config:
         from_attributes = True

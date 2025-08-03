@@ -41,6 +41,41 @@ def reset_scheduler():
 reset_thread = threading.Thread(target=reset_scheduler, daemon=True)
 reset_thread.start()
 
+def reset_weekly_data():
+    while True:
+        now = datetime.now()
+        next_monday = now + timedelta(days=(7 - now.weekday()))
+        next_monday = next_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        time.sleep((next_monday - now).total_seconds())
+        
+        with get_db() as db:
+            print("Weekly reset: Clearing weekly save data")
+            db.query(DailySave).filter(
+                DailySave.save_date < date.today()
+            ).delete()
+            db.commit()
+
+def reset_monthly_data():
+    while True:
+        now = datetime.now()
+        next_month = now.replace(day=1) + timedelta(days=32)
+        next_month = next_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        time.sleep((next_month - now).total_seconds())
+        
+        with get_db() as db:
+            print("Monthly reset: Clearing monthly save data")
+            db.query(DailySave).filter(
+                DailySave.save_date < date.today()
+            ).delete()
+            db.commit()
+
+weekly_thread = threading.Thread(target=reset_weekly_data, daemon=True)
+monthly_thread = threading.Thread(target=reset_monthly_data, daemon=True)
+weekly_thread.start()
+monthly_thread.start()
+
 @app.post("/register", response_model=UserSchema)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
@@ -357,6 +392,226 @@ def send_message(gang_id: str, message: ChatMessageCreate, current_user: User = 
     
     print(f"Message sent successfully: {chat_message.id}")
     return chat_message
+
+@app.delete("/gangs/{gang_id}/chat")
+def clear_chat(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"Clearing chat for gang: {gang_id}")
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        print(f"Gang not found: {gang_id}")
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if user is member
+    member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member:
+        print(f"User {current_user.id} not a member of gang {gang.id}")
+        raise HTTPException(status_code=403, detail="Not a member of this gang")
+    
+    # Delete all chat messages for this gang
+    db.query(ChatMessage).filter(ChatMessage.gang_id == gang.id).delete()
+    db.commit()
+    
+    print(f"Chat cleared successfully for gang {gang_id}")
+    return {"message": "Chat cleared successfully"}
+
+@app.put("/users/profile")
+def update_profile(request: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"Updating profile for user: {current_user.id}")
+    
+    username = request.get('username')
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    
+    if len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+    
+    existing_user = db.query(User).filter(User.username == username, User.id != current_user.id).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    current_user.username = username
+    db.commit()
+    
+    print(f"Profile updated successfully for user {current_user.id}")
+    return {"message": "Profile updated successfully"}
+
+@app.get("/gangs/{gang_id}/members")
+def get_gang_members(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if user is member
+    member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this gang")
+    
+    members = db.query(GangMember).filter(GangMember.gang_id == gang.id).all()
+    return members
+
+@app.delete("/gangs/{gang_id}/members/{user_id}")
+def remove_member(gang_id: str, user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if current user is host
+    current_member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not current_member or current_member.role != "host":
+        raise HTTPException(status_code=403, detail="Only host can remove members")
+    
+    # Remove the member
+    member_to_remove = db.query(GangMember).filter(
+        GangMember.user_id == user_id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member_to_remove:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    db.delete(member_to_remove)
+    db.commit()
+    return {"message": "Member removed successfully"}
+
+@app.post("/gangs/{gang_id}/leave")
+def leave_gang(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if user is member
+    member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this gang")
+    
+    # If user is host, check if there are other members
+    if member.role == "host":
+        other_members = db.query(GangMember).filter(
+            GangMember.gang_id == gang.id,
+            GangMember.user_id != current_user.id
+        ).count()
+        if other_members > 0:
+            raise HTTPException(status_code=400, detail="Host cannot leave gang with other members. Transfer ownership first.")
+    
+    db.delete(member)
+    db.commit()
+    return {"message": "Successfully left gang"}
+
+@app.get("/gangs/{gang_id}/monthly-leaderboard")
+def get_monthly_leaderboard(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    # Check if user is member
+    member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a member of this gang")
+    
+    # Get current month start and end dates
+    today = date.today()
+    month_start = date(today.year, today.month, 1)
+    if today.month == 12:
+        month_end = date(today.year + 1, 1, 1) - timedelta(days=1)
+    else:
+        month_end = date(today.year, today.month + 1, 1) - timedelta(days=1)
+    
+    # Get all members with their monthly saves
+    members = db.query(GangMember).filter(GangMember.gang_id == gang.id).all()
+    monthly_records = []
+    
+    for member in members:
+        user = db.query(User).filter(User.id == member.user_id).first()
+        monthly_saves = db.query(DailySave).filter(
+            DailySave.user_id == member.user_id,
+            DailySave.gang_id == gang.id,
+            DailySave.save_date >= month_start,
+            DailySave.save_date <= month_end,
+            DailySave.saved == True
+        ).count()
+        
+        monthly_records.append({
+            "user_id": user.id,
+            "username": user.username,
+            "monthly_saves": monthly_saves,
+            "role": member.role
+        })
+    
+    # Sort by monthly saves (descending)
+    monthly_records.sort(key=lambda x: x["monthly_saves"], reverse=True)
+    
+    # Find the Mantri (person with least saves)
+    mantri = None
+    if monthly_records:
+        mantri = monthly_records[-1]
+    
+    return {
+        "monthly_records": monthly_records,
+        "mantri": mantri
+    }
+
+@app.put("/users/change-password")
+def change_password(request: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"Changing password for user: {current_user.id}")
+    
+    current_password = request.get('current_password')
+    new_password = request.get('new_password')
+    
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="Current password and new password are required")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    
+    # Verify current password
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Hash new password
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    print(f"Password changed successfully for user {current_user.id}")
+    return {"message": "Password changed successfully"}
+
+@app.delete("/users/account")
+def delete_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    print(f"Deleting account for user: {current_user.id}")
+    
+    # Delete all user's data
+    db.query(DailySave).filter(DailySave.user_id == current_user.id).delete()
+    db.query(ChatMessage).filter(ChatMessage.user_id == current_user.id).delete()
+    db.query(GangMember).filter(GangMember.user_id == current_user.id).delete()
+    
+    # Delete gangs where user is host (if no other members)
+    user_gangs = db.query(Gang).filter(Gang.host_id == current_user.id).all()
+    for gang in user_gangs:
+        member_count = db.query(GangMember).filter(GangMember.gang_id == gang.id).count()
+        if member_count <= 1:  # Only host or no members
+            db.query(ChatMessage).filter(ChatMessage.gang_id == gang.id).delete()
+            db.query(GangMember).filter(GangMember.gang_id == gang.id).delete()
+            db.delete(gang)
+    
+    # Delete the user
+    db.delete(current_user)
+    db.commit()
+    
+    print(f"Account deleted successfully for user {current_user.id}")
+    return {"message": "Account deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
