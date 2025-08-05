@@ -250,7 +250,8 @@ def create_gang(gang: GangCreate, current_user: User = Depends(get_current_user)
         
         # Test database connection first
         try:
-            db.execute("SELECT 1")
+            from sqlalchemy import text
+            db.execute(text("SELECT 1"))
             print("Database connection test successful")
         except Exception as db_error:
             print(f"Database connection error: {str(db_error)}")
@@ -326,7 +327,8 @@ def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), 
         
         # Test database connection first
         try:
-            db.execute("SELECT 1")
+            from sqlalchemy import text
+            db.execute(text("SELECT 1"))
             print("Database connection test successful")
         except Exception as db_error:
             print(f"Database connection error: {str(db_error)}")

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,9 +22,34 @@ class ApiService {
     await prefs.remove('token');
   }
 
+  static Future<bool> isTokenValid() async {
+    final token = await getToken();
+    if (token == null) return false;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Token validation error: $e');
+      return false;
+    }
+  }
+
   static Future<Map<String, String>> _getHeaders() async {
     final token = await getToken();
     print('Token: $token');
+    if (token == null) {
+      print('WARNING: No token found!');
+    } else {
+      print('Token length: ${token.length}');
+      print('Token starts with: ${token.substring(0, min(20, token.length))}');
+    }
     final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -119,6 +145,10 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        print('Authentication error - token might be expired');
+        await removeToken();
+        throw Exception('Authentication failed. Please login again.');
       } else {
         try {
           final error = json.decode(response.body);
