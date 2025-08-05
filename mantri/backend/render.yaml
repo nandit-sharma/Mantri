@@ -3,11 +3,9 @@ services:
     name: backend
     env: python
     buildCommand: pip install -r mantri/backend/requirements.txt
-    startCommand: gunicorn main:app --bind 0.0.0.0:10000
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: PORT
         value: 10000
-      - key: PYTHON_VERSION
-        value: 3.11.9
     plan: free
     rootDir: mantri/backend
