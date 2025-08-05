@@ -41,21 +41,33 @@ class ApiService {
     }
   }
 
+  static Map<String, String>? _cachedHeaders;
+  static String? _cachedToken;
+  static DateTime? _lastTokenCheck;
+
   static Future<Map<String, String>> _getHeaders() async {
-    final token = await getToken();
-    print('Token: $token');
-    if (token == null) {
-      print('WARNING: No token found!');
-    } else {
-      print('Token length: ${token.length}');
-      print('Token starts with: ${token.substring(0, min(20, token.length))}');
+    final now = DateTime.now();
+
+    // Cache headers for 5 minutes to reduce token checks
+    if (_cachedHeaders != null &&
+        _lastTokenCheck != null &&
+        now.difference(_lastTokenCheck!).inMinutes < 5) {
+      return _cachedHeaders!;
     }
-    final headers = {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-    print('Headers: $headers');
-    return headers;
+
+    final token = await getToken();
+    if (token == null) {
+      _cachedHeaders = {'Content-Type': 'application/json'};
+    } else {
+      _cachedHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+    }
+
+    _cachedToken = token;
+    _lastTokenCheck = now;
+    return _cachedHeaders!;
   }
 
   static Future<Map<String, dynamic>> register({
@@ -273,7 +285,19 @@ class ApiService {
     }
   }
 
+  static List<Map<String, dynamic>>? _cachedUserGangs;
+  static DateTime? _lastUserGangsFetch;
+
   static Future<List<Map<String, dynamic>>> getUserGangs() async {
+    final now = DateTime.now();
+
+    // Cache user gangs for 30 seconds to reduce API calls
+    if (_cachedUserGangs != null &&
+        _lastUserGangsFetch != null &&
+        now.difference(_lastUserGangsFetch!).inSeconds < 30) {
+      return _cachedUserGangs!;
+    }
+
     final headers = await _getHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/user/gangs'),
@@ -282,10 +306,17 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.cast<Map<String, dynamic>>();
+      _cachedUserGangs = data.cast<Map<String, dynamic>>();
+      _lastUserGangsFetch = now;
+      return _cachedUserGangs!;
     } else {
       throw Exception('Failed to get user gangs');
     }
+  }
+
+  static void clearUserGangsCache() {
+    _cachedUserGangs = null;
+    _lastUserGangsFetch = null;
   }
 
   static Future<List<Map<String, dynamic>>> getChatMessages(

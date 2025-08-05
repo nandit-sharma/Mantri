@@ -56,14 +56,14 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load chat: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Failed to load chat: ${e.toString()}'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
     }
   }
 
@@ -78,14 +78,14 @@ class _ChatPageState extends State<ChatPage> {
       });
       _scrollToBottom();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load messages: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Failed to load messages: ${e.toString()}'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
     }
   }
 
@@ -109,14 +109,14 @@ class _ChatPageState extends State<ChatPage> {
       await ApiService.sendMessage(_gangId!, message);
       await _loadMessages();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send message: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Failed to send message: ${e.toString()}'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
     }
   }
 

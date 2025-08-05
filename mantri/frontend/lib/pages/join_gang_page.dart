@@ -63,7 +63,7 @@ class _JoinGangPageState extends State<JoinGangPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Successfully joined "${_foundGang!['name']}"'),
-              backgroundColor: const Color(0xFFFE7743),
+              backgroundColor: const Color.fromARGB(255, 70, 221, 62),
             ),
           );
           await Future.delayed(const Duration(seconds: 1));
@@ -72,14 +72,14 @@ class _JoinGangPageState extends State<JoinGangPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to join gang: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     SnackBar(
+        //       content: Text('Failed to join gang: ${e.toString()}'),
+        //       backgroundColor: Colors.red,
+        //     ),
+        //   );
+        // }
       } finally {
         if (mounted) {
           setState(() {
@@ -272,7 +272,7 @@ class _JoinGangPageState extends State<JoinGangPage> {
                                     color: Color(0xFF1A2634),
                                   )
                                 : const Text(
-                                    'Request to Join',
+                                    'Join Gang',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,

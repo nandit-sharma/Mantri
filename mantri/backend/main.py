@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, date
-from typing import List
+from typing import List, Dict, Any
 import asyncio
 import threading
 import time
+from functools import lru_cache
 
 from database import engine, get_db
 from models import Base, User, Gang, GangMember, DailySave, ChatMessage
@@ -33,9 +35,31 @@ app = FastAPI()
 def read_root():
     return {"message": "Hello from FastAPI"}
 
+# Simple cache for static responses
+_response_cache: Dict[str, Any] = {}
+_cache_timestamps: Dict[str, datetime] = {}
+
+def get_cached_response(key: str, max_age_minutes: int = 5) -> Any:
+    if key in _response_cache and key in _cache_timestamps:
+        age = datetime.now() - _cache_timestamps[key]
+        if age.total_seconds() < max_age_minutes * 60:
+            return _response_cache[key]
+    return None
+
+def set_cached_response(key: str, data: Any):
+    _response_cache[key] = data
+    _cache_timestamps[key] = datetime.now()
+
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "message": "Backend is running"}
+    cache_key = "health_check"
+    cached = get_cached_response(cache_key, max_age_minutes=1)
+    if cached:
+        return cached
+    
+    response = {"status": "healthy", "message": "Backend is running"}
+    set_cached_response(cache_key, response)
+    return response
 
 @app.get("/db-test")
 def test_database():
@@ -350,23 +374,9 @@ def join_gang(gang_id: str, current_user: User = Depends(get_current_user), db: 
 @app.get("/gangs/{gang_id}/home", response_model=GangHomeData)
 def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        print(f"Getting gang home for gang_id: {gang_id}, user_id: {current_user.id}")
-        
-        # Test database connection first
-        try:
-            from sqlalchemy import text
-            db.execute(text("SELECT 1"))
-            print("Database connection test successful")
-        except Exception as db_error:
-            print(f"Database connection error: {str(db_error)}")
-            raise HTTPException(status_code=500, detail=f"Database connection failed: {str(db_error)}")
-        
         gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
         if not gang:
-            print(f"Gang not found: {gang_id}")
             raise HTTPException(status_code=404, detail="Gang not found")
-        
-        print(f"Found gang: {gang.name}")
         
         # Check if user is member
         member = db.query(GangMember).filter(
@@ -374,16 +384,28 @@ def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), 
             GangMember.gang_id == gang.id
         ).first()
         if not member:
-            print(f"User {current_user.id} is not a member of gang {gang.id}")
             raise HTTPException(status_code=403, detail="Not a member of this gang")
         
-        print(f"User is member with role: {member.role}")
-        
-        # Get all members with users in a single query
+        # Get all members with users in a single optimized query
         try:
-            members_with_users = db.query(GangMember, User).join(
+            from sqlalchemy import func
+            members_with_users = db.query(
+                GangMember, User, 
+                func.count(DailySave.id).label('week_saves')
+            ).join(
                 User, GangMember.user_id == User.id
-            ).filter(GangMember.gang_id == gang.id).all()
+            ).outerjoin(
+                DailySave, 
+                (DailySave.user_id == GangMember.user_id) & 
+                (DailySave.gang_id == gang.id) &
+                (DailySave.save_date >= week_start) &
+                (DailySave.save_date <= week_end) &
+                (DailySave.saved == True)
+            ).filter(
+                GangMember.gang_id == gang.id
+            ).group_by(
+                GangMember.id, User.id
+            ).all()
             print(f"Found {len(members_with_users)} members for gang {gang.id}")
         except Exception as e:
             print(f"Error querying members: {str(e)}")
@@ -393,7 +415,7 @@ def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), 
             for member in gang_members:
                 user = db.query(User).filter(User.id == member.user_id).first()
                 if user:
-                    members_with_users.append((member, user))
+                    members_with_users.append((member, user, 0))
             print(f"Fallback query found {len(members_with_users)} members")
         
         # Get weekly records for all members
@@ -539,19 +561,29 @@ def save_today(gang_id: str, save_request: SaveRequest, current_user: User = Dep
 
 @app.get("/user/gangs")
 def get_user_gangs(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    user_gangs = db.query(GangMember).filter(GangMember.user_id == current_user.id).all()
+    # Optimized query with joins to reduce database calls
+    from sqlalchemy import func
+    
+    user_gangs = db.query(
+        GangMember, Gang, func.count(GangMember.id).label('member_count')
+    ).join(
+        Gang, GangMember.gang_id == Gang.id
+    ).filter(
+        GangMember.user_id == current_user.id
+    ).group_by(
+        GangMember.id, Gang.id
+    ).all()
+    
     gangs = []
-    for member in user_gangs:
-        gang = db.query(Gang).filter(Gang.id == member.gang_id).first()
-        if gang:
-            gangs.append({
-                "id": gang.id,
-                "name": gang.name,
-                "description": gang.description,
-                "gang_id": gang.gang_id,
-                "role": member.role,
-                "member_count": db.query(GangMember).filter(GangMember.gang_id == gang.id).count()
-            })
+    for member, gang, member_count in user_gangs:
+        gangs.append({
+            "id": gang.id,
+            "name": gang.name,
+            "description": gang.description,
+            "gang_id": gang.gang_id,
+            "role": member.role,
+            "member_count": member_count
+        })
     return gangs
 
 @app.get("/gangs/{gang_id}/chat", response_model=List[ChatMessageSchema])

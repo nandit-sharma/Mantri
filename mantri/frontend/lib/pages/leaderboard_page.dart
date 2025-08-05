@@ -29,14 +29,14 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load gangs: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Failed to load gangs: ${e.toString()}'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
     }
   }
 

@@ -38,7 +38,7 @@ class _CreateGangPageState extends State<CreateGangPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Gang "${gang['name']}" created successfully!'),
-              backgroundColor: const Color(0xFFFE7743),
+              backgroundColor: const Color.fromARGB(255, 70, 221, 62),
             ),
           );
           await Future.delayed(const Duration(seconds: 1));
