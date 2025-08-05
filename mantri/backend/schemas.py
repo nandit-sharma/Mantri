@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -17,7 +17,8 @@ class User(UserBase):
     id: int
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -41,7 +42,8 @@ class Gang(GangBase):
     created_at: datetime
     member_count: Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class GangMemberBase(BaseModel):
     role: str = "member"
@@ -56,7 +58,8 @@ class GangMember(GangMemberBase):
     joined_at: datetime
     user: User
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class DailySaveBase(BaseModel):
     saved: bool
@@ -71,7 +74,8 @@ class DailySave(DailySaveBase):
     gang_id: int
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class WeeklyRecord(BaseModel):
     user_id: int
@@ -96,7 +100,8 @@ class ChatMessage(ChatMessageBase):
     created_at: datetime
     user: Optional[User] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 class GangHomeData(BaseModel):
     gang: Gang
