@@ -17,12 +17,19 @@ from utils import generate_gang_id, get_week_start_date, get_week_end_date, get_
 Base.metadata.create_all(bind=engine)
 
 from config import settings
+from fastapi import FastAPI
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
-)
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello from FastAPI"}
+
+# app = FastAPI(
+#     title=settings.PROJECT_NAME,
+#     version=settings.VERSION,
+#     openapi_url=f"{settings.API_V1_STR}/openapi.json"
+# )
 
 # Parse CORS origins
 origins = settings.BACKEND_CORS_ORIGINS.split(",") if settings.BACKEND_CORS_ORIGINS != "*" else ["*"]
