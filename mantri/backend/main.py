@@ -302,23 +302,50 @@ def get_gang(gang_id: str, db: Session = Depends(get_db)):
 
 @app.post("/gangs/{gang_id}/join")
 def join_gang(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
-    if not gang:
-        raise HTTPException(status_code=404, detail="Gang not found")
-    
-    existing_member = db.query(GangMember).filter(
-        GangMember.user_id == current_user.id,
-        GangMember.gang_id == gang.id
-    ).first()
-    
-    if existing_member:
-        raise HTTPException(status_code=400, detail="Already a member of this gang")
-    
-    member = GangMember(user_id=current_user.id, gang_id=gang.id, role="member")
-    db.add(member)
-    db.commit()
-    
-    return {"message": "Successfully joined gang"}
+    try:
+        print(f"Join gang request: gang_id={gang_id}, user_id={current_user.id}")
+        
+        # Test database connection first
+        try:
+            from sqlalchemy import text
+            db.execute(text("SELECT 1"))
+            print("Database connection test successful")
+        except Exception as db_error:
+            print(f"Database connection error: {str(db_error)}")
+            raise HTTPException(status_code=500, detail=f"Database connection failed: {str(db_error)}")
+        
+        gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+        if not gang:
+            print(f"Gang not found: {gang_id}")
+            raise HTTPException(status_code=404, detail="Gang not found")
+        
+        print(f"Found gang: {gang.name}")
+        
+        existing_member = db.query(GangMember).filter(
+            GangMember.user_id == current_user.id,
+            GangMember.gang_id == gang.id
+        ).first()
+        
+        if existing_member:
+            print(f"User {current_user.id} is already a member of gang {gang.id}")
+            raise HTTPException(status_code=400, detail="Already a member of this gang")
+        
+        print(f"Adding user {current_user.id} to gang {gang.id}")
+        member = GangMember(user_id=current_user.id, gang_id=gang.id, role="member")
+        db.add(member)
+        db.commit()
+        
+        print(f"Successfully joined gang: {gang.name}")
+        return {"message": "Successfully joined gang"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error joining gang: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to join gang: {str(e)}")
 
 @app.get("/gangs/{gang_id}/home", response_model=GangHomeData)
 def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

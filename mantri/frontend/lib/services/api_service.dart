@@ -183,14 +183,38 @@ class ApiService {
 
   static Future<void> joinGang(String gangId) async {
     final headers = await _getHeaders();
-    final response = await http.post(
-      Uri.parse('$baseUrl/gangs/$gangId/join'),
-      headers: headers,
-    );
+    print('Joining gang: $gangId');
+    print('Request URL: $baseUrl/gangs/$gangId/join');
+    print('Headers: $headers');
 
-    if (response.statusCode != 200) {
-      final error = json.decode(response.body);
-      throw Exception(error['detail'] ?? 'Failed to join gang');
+    try {
+      final response = await http
+          .post(Uri.parse('$baseUrl/gangs/$gangId/join'), headers: headers)
+          .timeout(const Duration(seconds: 30));
+
+      print('Join response status: ${response.statusCode}');
+      print('Join response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('Successfully joined gang: $gangId');
+      } else {
+        try {
+          final error = json.decode(response.body);
+          print('Join error: $error');
+          throw Exception(error['detail'] ?? 'Failed to join gang');
+        } catch (e) {
+          print('Error parsing response: $e');
+          print('Raw response body: ${response.body}');
+          throw Exception('Server error: ${response.body}');
+        }
+      }
+    } catch (e) {
+      print('Network error: $e');
+      if (e.toString().contains('Connection reset by peer') ||
+          e.toString().contains('SocketException')) {
+        throw Exception('Connection timeout. Please try again.');
+      }
+      throw Exception('Network error: $e');
     }
   }
 
