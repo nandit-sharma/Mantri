@@ -41,33 +41,21 @@ class ApiService {
     }
   }
 
-  static Map<String, String>? _cachedHeaders;
-  static String? _cachedToken;
-  static DateTime? _lastTokenCheck;
-
   static Future<Map<String, String>> _getHeaders() async {
-    final now = DateTime.now();
-
-    // Cache headers for 5 minutes to reduce token checks
-    if (_cachedHeaders != null &&
-        _lastTokenCheck != null &&
-        now.difference(_lastTokenCheck!).inMinutes < 5) {
-      return _cachedHeaders!;
-    }
-
     final token = await getToken();
+    print('Token: $token');
     if (token == null) {
-      _cachedHeaders = {'Content-Type': 'application/json'};
+      print('WARNING: No token found!');
     } else {
-      _cachedHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+      print('Token length: ${token.length}');
+      print('Token starts with: ${token.substring(0, min(20, token.length))}');
     }
-
-    _cachedToken = token;
-    _lastTokenCheck = now;
-    return _cachedHeaders!;
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    print('Headers: $headers');
+    return headers;
   }
 
   static Future<Map<String, dynamic>> register({
@@ -195,38 +183,14 @@ class ApiService {
 
   static Future<void> joinGang(String gangId) async {
     final headers = await _getHeaders();
-    print('Joining gang: $gangId');
-    print('Request URL: $baseUrl/gangs/$gangId/join');
-    print('Headers: $headers');
+    final response = await http.post(
+      Uri.parse('$baseUrl/gangs/$gangId/join'),
+      headers: headers,
+    );
 
-    try {
-      final response = await http
-          .post(Uri.parse('$baseUrl/gangs/$gangId/join'), headers: headers)
-          .timeout(const Duration(seconds: 30));
-
-      print('Join response status: ${response.statusCode}');
-      print('Join response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        print('Successfully joined gang: $gangId');
-      } else {
-        try {
-          final error = json.decode(response.body);
-          print('Join error: $error');
-          throw Exception(error['detail'] ?? 'Failed to join gang');
-        } catch (e) {
-          print('Error parsing response: $e');
-          print('Raw response body: ${response.body}');
-          throw Exception('Server error: ${response.body}');
-        }
-      }
-    } catch (e) {
-      print('Network error: $e');
-      if (e.toString().contains('Connection reset by peer') ||
-          e.toString().contains('SocketException')) {
-        throw Exception('Connection timeout. Please try again.');
-      }
-      throw Exception('Network error: $e');
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['detail'] ?? 'Failed to join gang');
     }
   }
 
@@ -285,19 +249,7 @@ class ApiService {
     }
   }
 
-  static List<Map<String, dynamic>>? _cachedUserGangs;
-  static DateTime? _lastUserGangsFetch;
-
   static Future<List<Map<String, dynamic>>> getUserGangs() async {
-    final now = DateTime.now();
-
-    // Cache user gangs for 30 seconds to reduce API calls
-    if (_cachedUserGangs != null &&
-        _lastUserGangsFetch != null &&
-        now.difference(_lastUserGangsFetch!).inSeconds < 30) {
-      return _cachedUserGangs!;
-    }
-
     final headers = await _getHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/user/gangs'),
@@ -306,17 +258,10 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      _cachedUserGangs = data.cast<Map<String, dynamic>>();
-      _lastUserGangsFetch = now;
-      return _cachedUserGangs!;
+      return data.cast<Map<String, dynamic>>();
     } else {
       throw Exception('Failed to get user gangs');
     }
-  }
-
-  static void clearUserGangsCache() {
-    _cachedUserGangs = null;
-    _lastUserGangsFetch = null;
   }
 
   static Future<List<Map<String, dynamic>>> getChatMessages(

@@ -1,14 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, date
-from typing import List, Dict, Any
+from typing import List
 import asyncio
 import threading
 import time
-from functools import lru_cache
 
 from database import engine, get_db
 from models import Base, User, Gang, GangMember, DailySave, ChatMessage
@@ -35,31 +33,9 @@ app = FastAPI()
 def read_root():
     return {"message": "Hello from FastAPI"}
 
-# Simple cache for static responses
-_response_cache: Dict[str, Any] = {}
-_cache_timestamps: Dict[str, datetime] = {}
-
-def get_cached_response(key: str, max_age_minutes: int = 5) -> Any:
-    if key in _response_cache and key in _cache_timestamps:
-        age = datetime.now() - _cache_timestamps[key]
-        if age.total_seconds() < max_age_minutes * 60:
-            return _response_cache[key]
-    return None
-
-def set_cached_response(key: str, data: Any):
-    _response_cache[key] = data
-    _cache_timestamps[key] = datetime.now()
-
 @app.get("/health")
 def health_check():
-    cache_key = "health_check"
-    cached = get_cached_response(cache_key, max_age_minutes=1)
-    if cached:
-        return cached
-    
-    response = {"status": "healthy", "message": "Backend is running"}
-    set_cached_response(cache_key, response)
-    return response
+    return {"status": "healthy", "message": "Backend is running"}
 
 @app.get("/db-test")
 def test_database():
@@ -326,8 +302,28 @@ def get_gang(gang_id: str, db: Session = Depends(get_db)):
 
 @app.post("/gangs/{gang_id}/join")
 def join_gang(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
+    if not gang:
+        raise HTTPException(status_code=404, detail="Gang not found")
+    
+    existing_member = db.query(GangMember).filter(
+        GangMember.user_id == current_user.id,
+        GangMember.gang_id == gang.id
+    ).first()
+    
+    if existing_member:
+        raise HTTPException(status_code=400, detail="Already a member of this gang")
+    
+    member = GangMember(user_id=current_user.id, gang_id=gang.id, role="member")
+    db.add(member)
+    db.commit()
+    
+    return {"message": "Successfully joined gang"}
+
+@app.get("/gangs/{gang_id}/home", response_model=GangHomeData)
+def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
-        print(f"Join gang request: gang_id={gang_id}, user_id={current_user.id}")
+        print(f"Getting gang home for gang_id: {gang_id}, user_id: {current_user.id}")
         
         # Test database connection first
         try:
@@ -345,67 +341,22 @@ def join_gang(gang_id: str, current_user: User = Depends(get_current_user), db: 
         
         print(f"Found gang: {gang.name}")
         
-        existing_member = db.query(GangMember).filter(
-            GangMember.user_id == current_user.id,
-            GangMember.gang_id == gang.id
-        ).first()
-        
-        if existing_member:
-            print(f"User {current_user.id} is already a member of gang {gang.id}")
-            raise HTTPException(status_code=400, detail="Already a member of this gang")
-        
-        print(f"Adding user {current_user.id} to gang {gang.id}")
-        member = GangMember(user_id=current_user.id, gang_id=gang.id, role="member")
-        db.add(member)
-        db.commit()
-        
-        print(f"Successfully joined gang: {gang.name}")
-        return {"message": "Successfully joined gang"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        print(f"Error joining gang: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to join gang: {str(e)}")
-
-@app.get("/gangs/{gang_id}/home", response_model=GangHomeData)
-def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    try:
-        gang = db.query(Gang).filter(Gang.gang_id == gang_id).first()
-        if not gang:
-            raise HTTPException(status_code=404, detail="Gang not found")
-        
         # Check if user is member
         member = db.query(GangMember).filter(
             GangMember.user_id == current_user.id,
             GangMember.gang_id == gang.id
         ).first()
         if not member:
+            print(f"User {current_user.id} is not a member of gang {gang.id}")
             raise HTTPException(status_code=403, detail="Not a member of this gang")
         
-        # Get all members with users in a single optimized query
+        print(f"User is member with role: {member.role}")
+        
+        # Get all members with users in a single query
         try:
-            from sqlalchemy import func
-            members_with_users = db.query(
-                GangMember, User, 
-                func.count(DailySave.id).label('week_saves')
-            ).join(
+            members_with_users = db.query(GangMember, User).join(
                 User, GangMember.user_id == User.id
-            ).outerjoin(
-                DailySave, 
-                (DailySave.user_id == GangMember.user_id) & 
-                (DailySave.gang_id == gang.id) &
-                (DailySave.save_date >= week_start) &
-                (DailySave.save_date <= week_end) &
-                (DailySave.saved == True)
-            ).filter(
-                GangMember.gang_id == gang.id
-            ).group_by(
-                GangMember.id, User.id
-            ).all()
+            ).filter(GangMember.gang_id == gang.id).all()
             print(f"Found {len(members_with_users)} members for gang {gang.id}")
         except Exception as e:
             print(f"Error querying members: {str(e)}")
@@ -415,7 +366,7 @@ def get_gang_home(gang_id: str, current_user: User = Depends(get_current_user), 
             for member in gang_members:
                 user = db.query(User).filter(User.id == member.user_id).first()
                 if user:
-                    members_with_users.append((member, user, 0))
+                    members_with_users.append((member, user))
             print(f"Fallback query found {len(members_with_users)} members")
         
         # Get weekly records for all members
@@ -561,29 +512,19 @@ def save_today(gang_id: str, save_request: SaveRequest, current_user: User = Dep
 
 @app.get("/user/gangs")
 def get_user_gangs(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Optimized query with joins to reduce database calls
-    from sqlalchemy import func
-    
-    user_gangs = db.query(
-        GangMember, Gang, func.count(GangMember.id).label('member_count')
-    ).join(
-        Gang, GangMember.gang_id == Gang.id
-    ).filter(
-        GangMember.user_id == current_user.id
-    ).group_by(
-        GangMember.id, Gang.id
-    ).all()
-    
+    user_gangs = db.query(GangMember).filter(GangMember.user_id == current_user.id).all()
     gangs = []
-    for member, gang, member_count in user_gangs:
-        gangs.append({
-            "id": gang.id,
-            "name": gang.name,
-            "description": gang.description,
-            "gang_id": gang.gang_id,
-            "role": member.role,
-            "member_count": member_count
-        })
+    for member in user_gangs:
+        gang = db.query(Gang).filter(Gang.id == member.gang_id).first()
+        if gang:
+            gangs.append({
+                "id": gang.id,
+                "name": gang.name,
+                "description": gang.description,
+                "gang_id": gang.gang_id,
+                "role": member.role,
+                "member_count": db.query(GangMember).filter(GangMember.gang_id == gang.id).count()
+            })
     return gangs
 
 @app.get("/gangs/{gang_id}/chat", response_model=List[ChatMessageSchema])
