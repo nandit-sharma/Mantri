@@ -2,7 +2,6 @@ fastapi==0.95.2
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 pydantic==1.10.9
-pyyaml==5.4.1
 pydantic-settings==0.2.5
 python-jose[cryptography]==3.3.0
 passlib==1.7.4
@@ -10,5 +9,6 @@ bcrypt==4.1.2
 python-multipart==0.0.6
 python-dotenv==1.0.0
 psycopg2-binary==2.9.9
+pyyaml==5.3.1  # ✅ Downgraded to match pydantic-settings requirement
 setuptools>=65.5.0
 wheel>=0.40.0
