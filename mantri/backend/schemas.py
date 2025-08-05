@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -17,8 +17,7 @@ class User(UserBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
@@ -38,12 +37,11 @@ class GangCreate(GangBase):
 class Gang(GangBase):
     id: int
     gang_id: str
-    created_by: int
+    host_id: int
     created_at: datetime
     member_count: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GangMemberBase(BaseModel):
     role: str = "member"
@@ -56,10 +54,9 @@ class GangMember(GangMemberBase):
     user_id: int
     gang_id: int
     joined_at: datetime
-    user: User
+    user: Optional[User] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DailySaveBase(BaseModel):
     saved: bool
@@ -74,8 +71,7 @@ class DailySave(DailySaveBase):
     gang_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class WeeklyRecord(BaseModel):
     user_id: int
@@ -100,8 +96,7 @@ class ChatMessage(ChatMessageBase):
     created_at: datetime
     user: Optional[User] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GangHomeData(BaseModel):
     gang: Gang

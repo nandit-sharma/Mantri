@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // 59490
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'https://mantri.onrender.com';
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -92,21 +92,49 @@ class ApiService {
     required bool isPublic,
   }) async {
     final headers = await _getHeaders();
-    final response = await http.post(
-      Uri.parse('$baseUrl/gangs'),
-      headers: headers,
-      body: json.encode({
-        'name': name,
-        'description': description,
-        'is_public': isPublic,
-      }),
+    print(
+      'Creating gang with data: name=$name, description=$description, isPublic=$isPublic',
     );
+    print('Request URL: $baseUrl/gangs');
+    print('Headers: $headers');
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      final error = json.decode(response.body);
-      throw Exception(error['detail'] ?? 'Failed to create gang');
+    final requestBody = {
+      'name': name,
+      'description': description,
+      'is_public': isPublic,
+    };
+    print('Request body: ${json.encode(requestBody)}');
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/gangs'),
+            headers: headers,
+            body: json.encode(requestBody),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        try {
+          final error = json.decode(response.body);
+          throw Exception(error['detail'] ?? 'Failed to create gang');
+        } catch (e) {
+          print('Error parsing response: $e');
+          throw Exception('Failed to create gang: ${response.body}');
+        }
+      }
+    } catch (e) {
+      print('Network error: $e');
+      if (e.toString().contains('Connection reset by peer') ||
+          e.toString().contains('SocketException')) {
+        throw Exception('Connection timeout. Please try again.');
+      }
+      throw Exception('Network error: $e');
     }
   }
 
@@ -141,20 +169,34 @@ class ApiService {
     print('Making request to: $baseUrl/gangs/$gangId/home');
     print('Headers: $headers');
 
-    final response = await http.get(
-      Uri.parse('$baseUrl/gangs/$gangId/home'),
-      headers: headers,
-    );
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/gangs/$gangId/home'), headers: headers)
+          .timeout(const Duration(seconds: 30));
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      final error = json.decode(response.body);
-      print('Error response: $error');
-      throw Exception(error['detail'] ?? 'Failed to get gang data');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        try {
+          final error = json.decode(response.body);
+          print('Error response: $error');
+          throw Exception(error['detail'] ?? 'Failed to get gang data');
+        } catch (e) {
+          print('Error parsing response: $e');
+          print('Raw response body: ${response.body}');
+          throw Exception('Server error: ${response.body}');
+        }
+      }
+    } catch (e) {
+      print('Network error: $e');
+      if (e.toString().contains('Connection reset by peer') ||
+          e.toString().contains('SocketException')) {
+        throw Exception('Connection timeout. Please try again.');
+      }
+      throw Exception('Network error: $e');
     }
   }
 
